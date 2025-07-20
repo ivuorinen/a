@@ -1,0 +1,241 @@
+---
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=jcroql
+# GoReleaser configuration
+# Documentation: https://goreleaser.com/customization/
+version: 2
+
+# Set the project name
+project_name: a
+
+# Clean dist folder before build
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+# Build configuration
+builds:
+  - id: a
+    main: .
+    binary: a
+
+    # Custom ldflags
+    ldflags:
+      - -s -w
+      - -X github.com/ivuorinen/a/cmd.version={{.Version}}
+      - -X github.com/ivuorinen/a/cmd.commit={{.Commit}}
+      - -X github.com/ivuorinen/a/cmd.date={{.Date}}
+      - -X github.com/ivuorinen/a/cmd.builtBy=goreleaser
+
+    # Build for multiple platforms
+    goos:
+      - linux
+      - darwin
+      - freebsd
+      - openbsd
+      - netbsd
+
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - "386"
+
+    goarm:
+      - "6"
+      - "7"
+
+    # Skip certain combinations
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: freebsd
+        goarch: arm
+      - goos: openbsd
+        goarch: arm
+      - goos: netbsd
+        goarch: arm
+
+    # Set environment variables
+    env:
+      - CGO_ENABLED=0
+
+    # Custom build tags
+    tags:
+      - netgo
+      - osusergo
+
+# Archive configuration
+archives:
+  - id: a
+    formats: ["binary", "tar.gz"]
+
+    # Archive format
+    format_overrides:
+      - goos: windows
+        format: zip
+
+    # Files to include in archive
+    files:
+      - LICENSE.md
+      - README.md
+      - CHANGELOG.md
+      - docs/*
+
+# Checksum configuration
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+# Snapshot configuration
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+# Release configuration
+release:
+  github:
+    owner: ivuorinen
+    name: a
+
+  # Release notes
+  header: |
+    ## a v{{ .Version }} ({{ .Date }})
+
+    A robust command-line interface (CLI) wrapper around the age encryption tool
+
+  footer: |
+    ## Installation
+
+    ### Using Go
+    ```bash
+    go install github.com/ivuorinen/a@latest
+    ```
+
+    ### Using Homebrew (macOS/Linux)
+    ```bash
+    brew tap ivuorinen/tap
+    brew install a
+    ```
+
+    ### Manual Download
+    Download the appropriate binary for your platform from the assets below.
+
+    ## Documentation
+
+    See the [README](https://github.com/ivuorinen/a#readme) for usage instructions.
+
+  # Automatically generate release notes
+
+  make_latest: true
+
+# Changelog configuration
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "typo"
+      - "Merge pull request"
+      - "Merge branch"
+  groups:
+    - title: "🚀 Features"
+      regexp: "^feat"
+    - title: "🐛 Bug Fixes"
+      regexp: "^fix"
+    - title: "🔒 Security"
+      regexp: "^security"
+    - title: "⚡ Performance"
+      regexp: "^perf"
+    - title: "♻️ Refactoring"
+      regexp: "^refactor"
+    - title: "Other changes"
+
+# Homebrew tap configuration
+brews:
+  - name: a
+    repository:
+      owner: ivuorinen
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    homepage: "https://github.com/ivuorinen/a"
+    description: "Modern, secure Go-based CLI tool for managing Fail2Ban jails and bans"
+    license: "MIT"
+
+    dependencies:
+      - name: go
+        type: optional
+
+    test: |
+      system "#{bin}/a", "version"
+
+    install: |
+      bin.install "a"
+
+# NFPM configuration for Linux packages
+nfpms:
+  - id: a
+    package_name: a
+    vendor: ivuorinen
+    homepage: https://github.com/ivuorinen/a
+    maintainer: ivuorinen
+    description: Modern, secure Go-based CLI tool for managing Fail2Ban jails and bans
+    license: MIT
+
+    formats:
+      - deb
+      - rpm
+      - apk
+
+    bindir: /usr/bin
+
+    contents:
+      - src: ./LICENSE.md
+        dst: /usr/share/doc/a/LICENSE.md
+      - src: ./README.md
+        dst: /usr/share/doc/a/README.md
+
+    scripts:
+      postinstall: |
+        #!/bin/sh
+        echo "a has been installed. Run 'a --help' to get started."
+
+# Docker configuration
+dockers:
+  - image_templates:
+      - "ghcr.io/ivuorinen/a:{{ .Tag }}"
+      - "ghcr.io/ivuorinen/a:v{{ .Major }}"
+      - "ghcr.io/ivuorinen/a:v{{ .Major }}.{{ .Minor }}"
+      - "ghcr.io/ivuorinen/a:latest"
+
+    dockerfile: |
+      FROM alpine:latest
+      RUN apk --no-cache add ca-certificates
+      COPY a /usr/local/bin/
+      ENTRYPOINT ["a"]
+
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+      - "--platform=linux/amd64"
+
+# Announce releases
+announce:
+  skip: false

@@ -1,0 +1,72 @@
+# Revive configuration for "a" project
+# https://revive.run/
+
+ignoreGeneratedHeader = false
+severity = "warning"
+confidence = 0.8
+errorCode = 0
+warningCode = 0
+
+# Core rules that align with golangci-lint settings
+[rule.blank-imports]
+[rule.context-as-argument]
+[rule.context-keys-type]
+[rule.dot-imports]
+[rule.error-return]
+[rule.error-strings]
+[rule.error-naming]
+[rule.exported]
+[rule.if-return]
+[rule.increment-decrement]
+[rule.var-naming]
+[rule.var-declaration]
+[rule.range]
+[rule.receiver-naming]
+[rule.time-naming]
+[rule.unexported-return]
+[rule.indent-error-flow]
+[rule.errorf]
+[rule.empty-block]
+[rule.superfluous-else]
+[rule.unreachable-code]
+[rule.redefines-builtin-id]
+
+# Rules that complement golangci-lint but don't conflict
+[rule.atomic]
+[rule.bool-literal-in-expr]
+[rule.constant-logical-expr]
+[rule.defer]
+[rule.early-return]
+[rule.empty-lines]
+[rule.get-return]
+[rule.identical-branches]
+[rule.imports-blacklist]
+[rule.modifies-parameter]
+[rule.modifies-value-receiver]
+[rule.optimize-operands-order]
+[rule.string-of-int]
+[rule.struct-tag]
+# [rule.switch-default]  # Rule not available in current version
+[rule.unconditional-recursion]
+[rule.unnecessary-stmt]
+[rule.useless-break]
+[rule.waitgroup-by-value]
+
+# Project-specific rules
+[rule.package-comments] # Require package comments
+[rule.confusing-naming] # Catch confusing variable/function names
+
+# Disable rules that conflict with golangci-lint or project preferences
+# [rule.unused-parameter]  # Disabled - conflicts with golangci-lint unused linter
+# [rule.line-length-limit] # Disabled - conflicts with golangci-lint lll (which is also disabled)
+# [rule.function-length]   # Disabled - conflicts with golangci-lint funlen (which is disabled)
+# [rule.cyclomatic]        # Disabled - conflicts with golangci-lint gocyclo
+# [rule.cognitive-complexity] # Disabled - conflicts with golangci-lint gocognit (which is disabled)
+# [rule.max-public-structs] # Disabled - too restrictive for this project
+# [rule.flag-parameter]    # Disabled - can be too strict for CLI applications
+# [rule.deep-exit]         # Disabled - acceptable in CLI applications
+# [rule.file-header]       # Disabled - no specific file header requirement
+# [rule.add-constant]      # Disabled - can be too strict for configuration values
+# [rule.argument-limit]    # Disabled - can be too restrictive for some functions
+# [rule.function-result-limit] # Disabled - Go allows multiple returns
+# [rule.unhandled-error]   # Disabled - conflicts with golangci-lint errcheck

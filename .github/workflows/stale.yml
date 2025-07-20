@@ -1,23 +1,19 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 name: Stale
-
 on:
   schedule:
     - cron: '0 8 * * *' # Every day at 08:00
   workflow_call:
   workflow_dispatch:
-
 permissions:
   contents: read
   packages: read
   statuses: read
-
 jobs:
   stale:
     name: 🧹 Clean up stale issues and PRs
     runs-on: ubuntu-latest
-
     permissions:
       contents: write # only for delete-branch option
       issues: write

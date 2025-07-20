@@ -3,7 +3,6 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: requirements-txt-fixer
       - id: detect-private-key
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
@@ -22,19 +21,42 @@ repos:
       - id: pretty-format-json
         args: [--autofix, --no-sort-keys]
 
+  - repo: https://github.com/pre-commit/sync-pre-commit-deps
+    rev: v0.0.3
+    hooks:
+      - id: sync-pre-commit-deps
+
+  - repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+      - id: go-build-mod
+        alias: build
+      - id: go-mod-tidy
+        alias: tidy
+      - id: golangci-lint-mod
+        alias: lint
+      - id: go-fmt
+        alias: fmt
+        args: [-s, -w]
+
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.17.2
+    hooks:
+      - id: yamlfmt
+
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.44.0
+    rev: v0.45.0
     hooks:
       - id: markdownlint
         args: [-c, .markdownlint.json, --fix]
 
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.0
+    rev: v1.37.1
     hooks:
       - id: yamllint
 
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.11.0-1
+    rev: v3.12.0-2
     hooks:
       - id: shfmt
 
@@ -42,22 +64,17 @@ repos:
     rev: v0.10.0
     hooks:
       - id: shellcheck
-        args: ['--severity=warning']
+        args: ["--severity=warning"]
 
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.7
     hooks:
       - id: actionlint
-        args: ['-shellcheck=']
-
-  - repo: https://github.com/renovatebot/pre-commit-hooks
-    rev: 39.227.2
-    hooks:
-      - id: renovate-config-validator
+        args: ["-shellcheck="]
 
   - repo: https://github.com/bridgecrewio/checkov.git
-    rev: '3.2.400'
+    rev: "3.2.451"
     hooks:
       - id: checkov
         args:
-          - '--quiet'
+          - "--quiet"

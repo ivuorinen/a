@@ -1,0 +1,118 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/golangci-lint.json
+# golangci-lint configuration for f2b project
+# https://golangci-lint.run/usage/configuration/
+
+version: "2"
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+  go: "1.21"
+
+linters:
+  enable:
+    # Essential linters
+    - errcheck # Error checking
+    - govet # Go vet
+    - ineffassign # Inefficient assignment checking
+    - staticcheck # Static code analysis
+    - unused # Unused variable checking
+    - lll # Line length checking
+    - gosec # Security checking
+    - usetesting # Unit testing
+    - revive # Code style checking
+
+    # Code quality linters
+    - misspell # Spell checking
+    - unconvert # Unconvert checking
+    - gocyclo # Cyclomatic complexity checking
+    - prealloc # Preallocation checking
+    - bodyclose # Body close checking
+    - rowserrcheck # Rows error checking
+    - sqlclosecheck # SQL close checking
+    - durationcheck # Duration checking
+    - errorlint # Error linting
+    - predeclared # Predeclared identifier checking
+    - wastedassign # Wasted assignment checking
+    - containedctx # Contained context checking
+    - contextcheck # Context checking
+    - errname # Error name checking
+    - nilnil # Nil nil checking
+    - thelper # Helper function checking
+    - usestdlibvars # Use standard library variables
+    - whitespace # Whitespace checking
+    - godox # TODO/FIXME/etc comments
+
+  disable:
+    # Disable overly strict linters for this project
+    - varnamelen # Variable name length checking
+    - tagliatelle # Struct tag format checking
+    - makezero # Make zero checking
+    - testpackage # Separate test package requirement
+    - paralleltest # Parallel test requirement
+    - forcetypeassert # Force type assertion
+    - ireturn # Return interface checking
+    - nlreturn # New line return checking
+    - cyclop # Cyclomatic complexity (covered by gocyclo)
+    - funlen # Function length checking
+    - gocognit # Cognitive complexity checking
+    - maintidx # Maintainability index
+    - nestif # Nested if checking
+    - wsl # Whitespace linter (too strict)
+    - gocritic # Too many style opinions
+    - nakedret # Naked returns
+    - nolintlint # Nolint directive checking
+    - noctx # Context checking
+
+  settings:
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment # Can be too strict for simple structs
+        - shadow # Variable shadowing can be acceptable
+
+    gocyclo:
+      min-complexity: 20
+
+    misspell:
+      locale: US
+
+    prealloc:
+      simple: true
+      range-loops: true
+      for-loops: false
+
+    errorlint:
+      errorf: false # Allow %v instead of %w for some cases
+
+    lll:
+      line-length: 120
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+    - golines
+
+  settings:
+    gofmt:
+      simplify: true
+    goimports:
+      local-prefixes:
+        - github.com/ivuorinen/a
+    golines:
+      max-len: 120
+      tab-len: 4
+      shorten-comments: false
+      reformat-tags: true
+      chain-split-dots: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+  fix: true

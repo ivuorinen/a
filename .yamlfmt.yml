@@ -1,0 +1,11 @@
+---
+# yamlfmt configuration file
+# Schema: https://raw.githubusercontent.com/google/yamlfmt/main/schema.json
+formatter:
+  type: basic
+  include_document_start: true
+  gitignore_excludes: true
+  retain_line_breaks_single: true
+  eof_newline: true
+  max_line_length: 120
+  indent: 2
