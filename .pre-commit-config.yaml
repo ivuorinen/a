@@ -73,7 +73,7 @@ repos:
         args: ["-shellcheck="]
 
   - repo: https://github.com/bridgecrewio/checkov.git
-    rev: "3.2.470"
+    rev: "3.2.471"
     hooks:
       - id: checkov
         args:
