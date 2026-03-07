@@ -31,3 +31,4 @@ jobs:
         uses: ivuorinen/actions/codeql-analysis@97105fc2a909360678588cb50caf0be5144be486 # v2026.03.06
         with:
           language: ${{ matrix.language }}
+          queries: security-and-quality
