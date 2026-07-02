@@ -17,12 +17,12 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    # Secrets (COSIGN_*) are scoped to this environment; add protection rules there.
+    # HOMEBREW_TAP_GITHUB_TOKEN is scoped to this environment; add protection rules there.
     environment: release
     permissions:
       contents: write # create the GitHub release and upload artifacts
       packages: write # push the container image to ghcr.io
-      id-token: write # OIDC token for cosign/Sigstore signing
+      id-token: write # OIDC token for keyless cosign/Sigstore signing
     steps:
       - name: Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -58,9 +58,9 @@ jobs:
         uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
         with:
           distribution: goreleaser
-          version: latest
+          version: "~> v2" # pin the major version; avoids surprise breakage from a new GoReleaser major
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          # PAT with write access to ivuorinen/homebrew-tap; GITHUB_TOKEN cannot push to another repo.
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
