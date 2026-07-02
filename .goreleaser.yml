@@ -80,7 +80,6 @@ archives:
     files:
       - LICENSE.md
       - README.md
-      - CHANGELOG.md
       - docs/*
 
 # Checksum configuration
@@ -190,11 +189,6 @@ nfpms:
       - src: ./README.md
         dst: /usr/share/doc/a/README.md
 
-    scripts:
-      postinstall: |
-        #!/bin/sh
-        echo "a has been installed. Run 'a --help' to get started."
-
 # Docker configuration
 dockers:
   - image_templates:
@@ -203,11 +197,7 @@ dockers:
       - "ghcr.io/ivuorinen/a:v{{ .Major }}.{{ .Minor }}"
       - "ghcr.io/ivuorinen/a:latest"
 
-    dockerfile: |
-      FROM alpine:latest
-      RUN apk --no-cache add ca-certificates
-      COPY a /usr/local/bin/
-      ENTRYPOINT ["a"]
+    dockerfile: Dockerfile
 
     build_flag_templates:
       - "--pull"
