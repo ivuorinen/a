@@ -1,100 +1,72 @@
-# A CLI Wrapper for Age Encryption
+# a — age encryption wrapper
 
-A robust command-line interface (CLI) wrapper around the [age](https://github.com/FiloSottile/age)
-encryption tool. This utility simplifies encryption and decryption using SSH keys,
-with integrated support for fetching public keys from GitHub.
+A small CLI that encrypts and decrypts files with your SSH keys using the
+[age](https://github.com/FiloSottile/age) format. age is built in as a Go
+library, so **no external `age` binary is needed** — one self-contained tool.
+It can pull recipients' public keys straight from GitHub, keeps settings in a
+YAML config, and caches fetched keys locally. Files are fully interoperable with
+the standard `age` CLI.
 
-## Features
+## Install
 
-* **Secure Encryption/Decryption:** Utilize SSH and GitHub keys with `age` for strong encryption.
-* **Configuration:** Easily configurable via a YAML file.
-* **Structured Logging:** JSON-formatted logs with configurable paths.
-* **Cross-platform:** Supports Linux, macOS, and Windows.
-* **Shell Completion:** Auto-generated completion scripts for Bash, Zsh, and Fish.
-* **Robust Error Handling:** Comprehensive and clear error messaging.
-
-## Installation
-
-### Prerequisites
-
-* Go (1.21+)
-* `age` encryption tool
-
-### Build from source
+Requires Go 1.26+ to build. No runtime dependencies.
 
 ```bash
-git clone <repository-url>
-cd <repository-directory>
 go build -o a
+sudo mv a /usr/local/bin/   # optional
 ```
 
-### Move binary to path (optional)
+## Commands
+
+| Command | Alias | Description |
+| --- | --- | --- |
+| `config [set\|rem\|show]` | `c` | View or change settings; bare `config` prints the commands and current config |
+| `encrypt [input] [github-user]` | `e` | Encrypt a file; output defaults to `<input>.age` |
+| `decrypt [input]` | `d` | Decrypt a file; output defaults to `<input>` without `.age` |
+| `completion [bash\|zsh\|fish]` | | Print a shell-completion script |
+
+Add `-v` for verbose (debug) logging. The long flag form still works:
+`encrypt -i in -o out -r key.pub`, `decrypt -i in -o out --ssh-key key`.
+
+## Example
 
 ```bash
-sudo mv a /usr/local/bin/
+# 1. Have an SSH key (create one if needed)
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ''
+
+# 2. Configure: private key for decrypting, your public key as a default recipient
+a config set ssh_key_path ~/.ssh/id_ed25519
+a config set default_recipients ~/.ssh/id_ed25519.pub   # comma-separate for several
+
+# 3. Encrypt to the configured recipients -> message.txt.age
+a e message.txt
+a e message.txt octocat        # also encrypt to github.com/octocat.keys
+
+# 4. Decrypt -> message.txt (written 0600)
+a d message.txt.age
 ```
 
-## Usage
+`a c show` prints the current config; `a config rem <key>` resets one key.
 
-### Basic usage
+## Configuration
 
-```bash
-a [command] [flags]
-```
+Stored at `$XDG_CONFIG_HOME/a/config.yaml` (Linux, default `~/.config/a/config.yaml`),
+`~/.config/a/config.yaml` (macOS), or `%AppData%\a\config.yaml` (Windows), and
+created with defaults on first run.
 
-### Commands
+| Key | Description |
+| --- | --- |
+| `ssh_key_path` | Private key used for decryption; if empty, `~/.ssh/id_*` keys are tried in turn |
+| `github_user` | Default GitHub user whose published keys are added as recipients |
+| `default_recipients` | Public-key files or key strings always added as recipients |
+| `cache_ttl_minutes` | Lifetime of cached GitHub keys; `0` disables caching |
+| `log_file_path` | JSON log file location |
 
-* `config`: Manage application settings
-* `encrypt`: Encrypt files
-* `decrypt`: Decrypt files
-* `completion`: Generate shell completion scripts
+Fetched GitHub keys are cached (mode `0600`) in the user cache dir
+(`~/.cache/a/<user>.keys` on Linux) for `cache_ttl_minutes`, avoiding a network
+request on every encryption.
 
-### Examples
-
-#### Configure the CLI
-
-```bash
-a config --ssh-key ~/.ssh/id_rsa --github-user yourusername --default-recipients ~/.ssh/id_rsa.pub --cache-ttl 120
-```
-
-#### Encrypt a file
-
-```bash
-a encrypt -o encrypted_file.txt input.txt
-```
-
-#### Decrypt a file
-
-```bash
-a decrypt -o decrypted_file.txt encrypted_file.txt
-```
-
-## Generate shell completions
-
-```bash
-a completion bash > /etc/bash_completion.d/a
-```
-
-## Configuration File
-
-Configuration is stored at `$HOME/.config/a/config.yaml`:
-
-```yaml
-ssh_key_path: "/home/user/.ssh/id_rsa"
-github_user: "yourusername"
-default_recipients:
-  - "/home/user/.ssh/id_rsa.pub"
-cache_ttl_minutes: 120
-log_file_path: "/home/user/.state/a/cli.log"
-```
-
-## Logging
-
-Structured JSON logs are written to a configurable log file (`cli.log`). Verbosity can be adjusted with the `-v` or `--verbose` flag.
-
-## Testing
-
-Run unit tests with:
+## Development
 
 ```bash
 go test ./...
@@ -102,4 +74,4 @@ go test ./...
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE.md](LICENSE.md).
