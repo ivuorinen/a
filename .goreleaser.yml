@@ -189,24 +189,25 @@ nfpms:
       - src: ./README.md
         dst: /usr/share/doc/a/README.md
 
-# Docker configuration
-dockers:
-  - image_templates:
-      - "ghcr.io/ivuorinen/a:{{ .Tag }}"
-      - "ghcr.io/ivuorinen/a:v{{ .Major }}"
-      - "ghcr.io/ivuorinen/a:v{{ .Major }}.{{ .Minor }}"
-      - "ghcr.io/ivuorinen/a:latest"
-
+# Docker configuration (buildx-based, replaces the deprecated dockers/docker_manifests)
+dockers_v2:
+  - images:
+      - "ghcr.io/ivuorinen/a"
+    tags:
+      - "{{ .Tag }}"
+      - "v{{ .Major }}"
+      - "v{{ .Major }}.{{ .Minor }}"
+      - "latest"
     dockerfile: Dockerfile
-
-    build_flag_templates:
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--label=org.opencontainers.image.source={{.GitURL}}"
-      - "--platform=linux/amd64"
+    # ponytail: amd64 only, to match the pre-migration image; add linux/arm64 here to publish a multi-arch manifest (arm64 binaries already build).
+    platforms:
+      - linux/amd64
+    labels:
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
 
 # Announce releases
 announce:
