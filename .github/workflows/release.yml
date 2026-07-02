@@ -17,8 +17,6 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    # HOMEBREW_TAP_GITHUB_TOKEN is scoped to this environment; add protection rules there.
-    environment: release
     permissions:
       contents: write # create the GitHub release and upload artifacts
       packages: write # push the container image to ghcr.io
@@ -62,5 +60,3 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # PAT with write access to ivuorinen/homebrew-tap; GITHUB_TOKEN cannot push to another repo.
-          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
