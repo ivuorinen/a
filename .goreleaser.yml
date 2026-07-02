@@ -74,7 +74,7 @@ archives:
     # Archive format
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
 
     # Files to include in archive
     files:
@@ -88,9 +88,28 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
+# Keyless-sign the checksums file with cosign via Sigstore (Fulcio + Rekor). The
+# OIDC identity comes from the workflow's id-token; no long-lived keys are stored.
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+# Generate SBOMs for the release archives with syft.
+sboms:
+  - id: archive
+    artifacts: archive
+
 # Snapshot configuration
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 # Release configuration
 release:
@@ -110,12 +129,6 @@ release:
     ### Using Go
     ```bash
     go install github.com/ivuorinen/a@latest
-    ```
-
-    ### Using Homebrew (macOS/Linux)
-    ```bash
-    brew tap ivuorinen/tap
-    brew install a
     ```
 
     ### Manual Download
@@ -153,35 +166,6 @@ changelog:
     - title: "♻️ Refactoring"
       regexp: "^refactor"
     - title: "Other changes"
-
-# Homebrew tap configuration
-brews:
-  - name: a
-    repository:
-      owner: ivuorinen
-      name: homebrew-tap
-      branch: main
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-
-    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-
-    homepage: "https://github.com/ivuorinen/a"
-    description: "Modern, secure Go-based CLI tool for managing Fail2Ban jails and bans"
-    license: "MIT"
-
-    dependencies:
-      - name: go
-        type: optional
-
-    test: |
-      system "#{bin}/a", "--version"
-
-    install: |
-      bin.install "a"
 
 # NFPM configuration for Linux packages
 nfpms:
