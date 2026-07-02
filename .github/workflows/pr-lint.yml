@@ -9,17 +9,17 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-permissions: read-all
+permissions: {} # least privilege by default; the job grants only what it needs
 jobs:
   Linter:
     name: PR Lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      statuses: write
-      contents: read
-      packages: read
+      statuses: write # post the lint result as a commit status
+      contents: read # check out the PR to lint it
+      packages: read # pull the linter action's dependencies
     steps:
       - name: Run PR Lint
         # https://github.com/ivuorinen/actions
-        uses: ivuorinen/actions/pr-lint@f2d15a840e8888ba4f0c348ea70b6522cf2dc541 # v2026.04.15
+        uses: ivuorinen/actions/pr-lint@de31e11dda6488eabe95e951ebb61c6d9d500865 # v2026.06.30
