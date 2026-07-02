@@ -68,11 +68,14 @@ func setupLogging(verbose bool) error {
 
 	logFile, err := os.OpenFile(cfg.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
-		log = slog.New(slog.NewJSONHandler(os.Stderr, opts))
+		// Mutate the shared logger in place (rather than reassigning the pointer)
+		// so the subcommands, which captured the log pointer at construction time,
+		// observe the configured handler and level.
+		*log = *slog.New(slog.NewJSONHandler(os.Stderr, opts))
 		log.Warn("could not open log file; logging to stderr", "path", cfg.LogFilePath, "error", err)
 		return nil
 	}
-	log = slog.New(slog.NewJSONHandler(logFile, opts))
+	*log = *slog.New(slog.NewJSONHandler(logFile, opts))
 	return nil
 }
 

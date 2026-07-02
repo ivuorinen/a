@@ -99,14 +99,18 @@ func setConfigKey(cfg *Config, key, value string) error {
 			cfg.DefaultRecipients = nil
 			break
 		}
-		parts := strings.Split(value, ",")
-		for i := range parts {
-			parts[i] = strings.TrimSpace(parts[i])
+		var recipients []string
+		for _, p := range strings.Split(value, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				recipients = append(recipients, p)
+			}
 		}
-		cfg.DefaultRecipients = parts
+		cfg.DefaultRecipients = recipients
 	case "cache_ttl_minutes":
 		if value == "" {
-			cfg.CacheTTLMinutes = 0
+			// `rem` resets to the documented default; an explicit `set ... 0`
+			// still disables caching (see fetchGitHubKeys).
+			cfg.CacheTTLMinutes = defaultCacheTTLMinutes
 			break
 		}
 		n, err := strconv.Atoi(value)

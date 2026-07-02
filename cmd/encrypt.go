@@ -216,6 +216,21 @@ func writeKeyCache(cachePath string, body []byte, log *slog.Logger) {
 	}
 }
 
+// linesForInput resolves a single parseRecipients entry into candidate lines:
+// the literal string itself, or the lines of a file when the entry names one.
+func linesForInput(in string) ([]string, error) {
+	// #nosec G304 G703 -- recipient path is user-provided by design (config/flags/GitHub)
+	if info, statErr := os.Stat(in); statErr == nil && !info.IsDir() {
+		// #nosec G304 G703 -- recipient path is user-provided by design (config/flags/GitHub)
+		data, readErr := os.ReadFile(in)
+		if readErr != nil {
+			return nil, fmt.Errorf("reading recipient file %s: %w", in, readErr)
+		}
+		return strings.Split(string(data), "\n"), nil
+	}
+	return []string{in}, nil
+}
+
 // parseRecipients resolves each input into one or more age recipients. An input
 // is either a public-key file (an SSH .pub file or a recipients file, one key per
 // line) or a literal recipient string (an "ssh-..." key line or an "age1..." key).
@@ -225,15 +240,9 @@ func parseRecipients(inputs []string) ([]age.Recipient, error) {
 		if in == "" {
 			return nil, fmt.Errorf("invalid argument for encryption: empty recipient")
 		}
-		lines := []string{in}
-		// #nosec G304 G703 -- recipient path is user-provided by design (config/flags/GitHub)
-		if info, statErr := os.Stat(in); statErr == nil && !info.IsDir() {
-			// #nosec G304 G703 -- recipient path is user-provided by design (config/flags/GitHub)
-			data, readErr := os.ReadFile(in)
-			if readErr != nil {
-				return nil, fmt.Errorf("reading recipient file %s: %w", in, readErr)
-			}
-			lines = strings.Split(string(data), "\n")
+		lines, err := linesForInput(in)
+		if err != nil {
+			return nil, err
 		}
 		for _, line := range lines {
 			if line = strings.TrimSpace(line); line == "" || strings.HasPrefix(line, "#") {

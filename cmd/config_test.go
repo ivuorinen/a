@@ -48,9 +48,9 @@ func TestConfig_SetEachKey(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 30, cfg.CacheTTLMinutes)
 
-	_, err = runConfig(t, cfg, "set", "default_recipients", "a.pub, b.pub")
+	_, err = runConfig(t, cfg, "set", "default_recipients", "a.pub,, b.pub,")
 	require.NoError(t, err)
-	assert.Equal(t, []string{"a.pub", "b.pub"}, cfg.DefaultRecipients, "comma-split and trimmed")
+	assert.Equal(t, []string{"a.pub", "b.pub"}, cfg.DefaultRecipients, "comma-split, trimmed, empties dropped")
 }
 
 func TestConfig_SetRejectsBadKeyAndValue(t *testing.T) {
@@ -70,6 +70,11 @@ func TestConfig_RemResetsField(t *testing.T) {
 	_, err = runConfig(t, cfg, "rem", "default_recipients")
 	require.NoError(t, err)
 	assert.Nil(t, cfg.DefaultRecipients)
+
+	// rem resets to the documented default (120), not 0 (which would disable caching).
+	_, err = runConfig(t, cfg, "rem", "cache_ttl_minutes")
+	require.NoError(t, err)
+	assert.Equal(t, defaultCacheTTLMinutes, cfg.CacheTTLMinutes)
 }
 
 func TestConfig_SaveErrorPropagates(t *testing.T) {
