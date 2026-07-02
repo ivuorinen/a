@@ -39,6 +39,8 @@ Session.vim
 Sessionx.vim
 [._]*.un~
 coverage*
+dist/
 logs
 out/
 tags
+a
