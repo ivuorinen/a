@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// defaultCacheTTLMinutes is the GitHub-key cache lifetime written to a freshly
+// bootstrapped config. It matches the --cache-ttl flag default.
+const defaultCacheTTLMinutes = 120
+
 // Config represents the application's YAML configuration.
 type Config struct {
 	SSHKeyPath        string   `yaml:"ssh_key_path"`
@@ -17,11 +22,14 @@ type Config struct {
 	DefaultRecipients []string `yaml:"default_recipients"`
 	CacheTTLMinutes   int      `yaml:"cache_ttl_minutes"`
 	LogFilePath       string   `yaml:"log_file_path"`
+
+	// CacheDir is the runtime cache directory (from InitConfigPaths). It is not
+	// persisted to the YAML file; it is populated after loading.
+	CacheDir string `yaml:"-"`
 }
 
 // ConfigPaths holds config and cache file paths.
 type ConfigPaths struct {
-	ConfigDir  string
 	ConfigFile string
 	CacheDir   string
 }
@@ -43,8 +51,18 @@ func InitConfigPaths() (ConfigPaths, error) {
 
 	cfgDir := filepath.Join(configDir, "a")
 	cfgFile := filepath.Join(cfgDir, "config.yaml")
+	// #nosec G703 -- cfgDir is derived from os.UserConfigDir/HOME plus a constant, not user input
 	if err := os.MkdirAll(cfgDir, 0o700); err != nil {
 		return ConfigPaths{}, err
+	}
+
+	// Materialize a default config on first run so the `config` command (and any
+	// other command whose PreRun loads config) can bootstrap without a manual step.
+	// #nosec G703 -- cfgFile is derived from os.UserConfigDir/HOME plus constants, not user input
+	if _, err := os.Stat(cfgFile); errors.Is(err, os.ErrNotExist) {
+		if err := SaveConfig(cfgFile, &Config{CacheTTLMinutes: defaultCacheTTLMinutes}); err != nil {
+			return ConfigPaths{}, err
+		}
 	}
 
 	cacheBase, err := os.UserCacheDir()
@@ -57,44 +75,33 @@ func InitConfigPaths() (ConfigPaths, error) {
 	}
 
 	return ConfigPaths{
-		ConfigDir:  cfgDir,
 		ConfigFile: cfgFile,
 		CacheDir:   cacheDir,
 	}, nil
 }
 
 // LoadConfig loads configuration from the YAML file.
-// gosec G304: cfgFile is always set by InitConfigPaths and not user-controlled.
+//
+// cfgFile is supplied by InitConfigPaths (derived from os.UserConfigDir), not from
+// user input, so it is trusted. A missing file yields a default config so callers
+// can bootstrap one.
 func LoadConfig(cfgFile string) (*Config, error) {
-	// gosec G304 mitigation: Ensure cfgFile is within the expected config directory
-	configDir, err := os.UserConfigDir()
-	if err != nil {
-		return nil, err
-	}
-	expectedDir := filepath.Join(configDir, "a")
-	absCfgFile, err := filepath.Abs(cfgFile)
-	if err != nil {
-		return nil, err
-	}
-	if !strings.HasPrefix(absCfgFile, expectedDir) {
-		return nil, fmt.Errorf(
-			"config file path %s is not within expected config directory %s",
-			absCfgFile,
-			expectedDir,
-		)
-	}
-	if _, err := os.Stat(cfgFile); err != nil {
-		return nil, fmt.Errorf("config file does not exist: %w", err)
-	}
-
 	info, err := os.Stat(cfgFile)
+	if errors.Is(err, os.ErrNotExist) {
+		cfg := &Config{}
+		if err := applyConfigDefaults(cfg); err != nil {
+			return nil, err
+		}
+		return cfg, nil
+	}
 	if err != nil {
-		return nil, fmt.Errorf("config file does not exist: %w", err)
+		return nil, fmt.Errorf("could not stat config file: %w", err)
 	}
-	if info.Mode().Perm() != 0o600 {
-		return nil, fmt.Errorf("config file must have 0600 permissions, got %o", info.Mode().Perm())
+	// Reject only group/other access; stricter modes such as 0400 are fine.
+	if perm := info.Mode().Perm(); perm&0o077 != 0 {
+		return nil, fmt.Errorf("config file %s must not be group/other accessible (perms %#o)", cfgFile, perm)
 	}
-	// #nosec G304 -- cfgFile is validated to be within the config directory
+	// #nosec G304 -- cfgFile is supplied by InitConfigPaths (os.UserConfigDir-derived), not user input
 	data, err := os.ReadFile(cfgFile)
 	if err != nil {
 		return nil, err
@@ -103,23 +110,56 @@ func LoadConfig(cfgFile string) (*Config, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	if cfg.LogFilePath == "" {
-		stateDir := filepath.Join(os.Getenv("HOME"), ".state", "a")
-		if err := os.MkdirAll(stateDir, 0o700); err != nil {
-			return nil, err
-		}
-		cfg.LogFilePath = filepath.Join(stateDir, "cli.log")
+	if err := applyConfigDefaults(&cfg); err != nil {
+		return nil, err
 	}
 	return &cfg, nil
 }
 
+// applyConfigDefaults fills in derived defaults for any unset fields.
+func applyConfigDefaults(cfg *Config) error {
+	if cfg.LogFilePath == "" {
+		stateDir := filepath.Join(os.Getenv("HOME"), ".state", "a")
+		// #nosec G703 -- stateDir is derived from HOME plus constants, not user input
+		if err := os.MkdirAll(stateDir, 0o700); err != nil {
+			return err
+		}
+		cfg.LogFilePath = filepath.Join(stateDir, "cli.log")
+	}
+	return nil
+}
+
 // SaveConfig saves configuration to the YAML file.
-func SaveConfig(cfgFile string, cfg *Config) error {
+//
+// It writes to a temp file (created 0600) in the config directory and renames it
+// over cfgFile, so an interrupted or disk-full write cannot truncate or lose the
+// existing config, and the result is always 0600 (which LoadConfig requires).
+func SaveConfig(cfgFile string, cfg *Config) (err error) {
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(cfgFile, data, 0o600)
+	// #nosec G304 -- cfgFile is supplied by InitConfigPaths (os.UserConfigDir-derived), not user input
+	tmp, err := os.CreateTemp(filepath.Dir(cfgFile), ".config-*.yaml")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer func() {
+		if err != nil {
+			// #nosec G703 -- tmpName is CreateTemp's own path under the trusted config dir
+			_ = os.Remove(tmpName)
+		}
+	}()
+	if _, err = tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err = tmp.Close(); err != nil {
+		return err
+	}
+	// #nosec G703 -- tmpName and cfgFile are both InitConfigPaths-derived, not user input
+	return os.Rename(tmpName, cfgFile)
 }
 
 // ScanSSHPrivateKeys scans ~/.ssh for private keys matching id_* (excluding .pub).
