@@ -3,20 +3,22 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/ivuorinen/a/cmd"
 )
 
-const version = "v0.3.0"
+// version is overridden at release time via -ldflags "-X main.version=...".
+var version = "v0.3.0"
 
 var (
-	log     = logrus.New()
-	cfg     *cmd.Config
-	cfgFile string
+	log      = slog.New(slog.NewJSONHandler(os.Stderr, nil))
+	cfg      = &cmd.Config{}
+	cfgFile  string
+	cacheDir string
 )
 
 // initConfigPaths initializes configuration and cache directories.
@@ -26,12 +28,23 @@ func initConfigPaths() error {
 		return err
 	}
 	cfgFile = paths.ConfigFile
+	cacheDir = paths.CacheDir
 	return nil
 }
 
-// loadConfig loads configuration from the YAML file.
-func loadConfig() (*cmd.Config, error) {
-	return cmd.LoadConfig(cfgFile)
+// loadConfig loads configuration from the YAML file into the shared cfg value.
+//
+// It mutates cfg in place (rather than reassigning the pointer) so that the
+// subcommands, which captured the cfg pointer at construction time, observe the
+// loaded values.
+func loadConfig() error {
+	loaded, err := cmd.LoadConfig(cfgFile)
+	if err != nil {
+		return err
+	}
+	*cfg = *loaded
+	cfg.CacheDir = cacheDir
+	return nil
 }
 
 // saveConfig saves configuration to the YAML file.
@@ -39,19 +52,30 @@ func saveConfig(cfg *cmd.Config) error {
 	return cmd.SaveConfig(cfgFile, cfg)
 }
 
-// setupLogging configures JSON logging to file and stdout.
+// setupLogging configures JSON logging to the configured log file, falling back
+// to stderr if the file cannot be opened.
+//
+// Logging is operational, not a security control, and encrypt/decrypt do not
+// depend on it — so a bad log_file_path degrades to stderr rather than bricking
+// every command (including `config`, the only way to fix the path). It never
+// returns an error.
 func setupLogging(verbose bool) error {
-	log.SetFormatter(&logrus.JSONFormatter{})
+	level := slog.LevelInfo
+	if verbose {
+		level = slog.LevelDebug
+	}
+	opts := &slog.HandlerOptions{Level: level}
+
 	logFile, err := os.OpenFile(cfg.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
-		return fmt.Errorf("could not open log file: %w", err)
+		// Mutate the shared logger in place (rather than reassigning the pointer)
+		// so the subcommands, which captured the log pointer at construction time,
+		// observe the configured handler and level.
+		*log = *slog.New(slog.NewJSONHandler(os.Stderr, opts))
+		log.Warn("could not open log file; logging to stderr", "path", cfg.LogFilePath, "error", err)
+		return nil
 	}
-	log.SetOutput(logFile)
-	if verbose {
-		log.SetLevel(logrus.DebugLevel)
-	} else {
-		log.SetLevel(logrus.InfoLevel)
-	}
+	*log = *slog.New(slog.NewJSONHandler(logFile, opts))
 	return nil
 }
 
@@ -66,9 +90,7 @@ func main() {
 			if err := initConfigPaths(); err != nil {
 				return fmt.Errorf("error initializing paths: %w", err)
 			}
-			var err error
-			cfg, err = loadConfig()
-			if err != nil {
+			if err := loadConfig(); err != nil {
 				return fmt.Errorf("error loading config: %w", err)
 			}
 			return setupLogging(verbose)
@@ -85,9 +107,7 @@ func main() {
 
 	// Add subcommands from cmd/*
 	rootCmd.AddCommand(
-		cmd.ConfigCmd(cfg, func(c any) error {
-			return saveConfig(c.(*cmd.Config))
-		}),
+		cmd.ConfigCmd(cfg, saveConfig),
 		cmd.Encrypt(cfg, log),
 		cmd.Decrypt(cfg, log),
 		cmd.Completion(rootCmd),
@@ -95,6 +115,7 @@ func main() {
 
 	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
-		log.WithError(err).Fatal("Command execution failed")
+		log.Error("Command execution failed", "error", err)
+		os.Exit(1)
 	}
 }

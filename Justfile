@@ -15,7 +15,7 @@ default:
 format:
     gofmt -s -w .
     goimports -w .
-    yamlfmt -c .yamlfmt.yml .
+    yamlfmt -conf .yamlfmt.yml .
     markdownlint -c .markdownlint.json --fix '**/*.md'
 
 # Lint Go code and configs
@@ -27,6 +27,12 @@ lint:
 # Run all tests
 test:
     go test -v ./...
+
+# Run tests with coverage; writes coverage.out and opens the HTML report
+coverage:
+    go test -coverprofile=coverage.out ./...
+    go tool cover -func=coverage.out | tail -1
+    go tool cover -html=coverage.out -o coverage.html
 
 # Build the binary
 build:
@@ -40,9 +46,9 @@ release:
 release-publish:
     goreleaser release --clean
 
-# Run pre-commit hooks on all files
+# Run prek or pre-commit, prefer prek hooks on all files
 precommit:
-    pre-commit run --all-files
+    @command -v prek >/dev/null 2>&1 && prek run --all-files || pre-commit run --all-files
 
 # Update Go modules
 tidy:

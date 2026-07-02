@@ -20,13 +20,11 @@ builds:
     main: .
     binary: a
 
-    # Custom ldflags
+    # Custom ldflags. version is a package-level var in main so -X can set it;
+    # commit/date/builtBy were dropped as they were never surfaced anywhere.
     ldflags:
       - -s -w
-      - -X github.com/ivuorinen/a/cmd.version={{.Version}}
-      - -X github.com/ivuorinen/a/cmd.commit={{.Commit}}
-      - -X github.com/ivuorinen/a/cmd.date={{.Date}}
-      - -X github.com/ivuorinen/a/cmd.builtBy=goreleaser
+      - -X main.version={{.Version}}
 
     # Build for multiple platforms
     goos:
@@ -180,7 +178,7 @@ brews:
         type: optional
 
     test: |
-      system "#{bin}/a", "version"
+      system "#{bin}/a", "--version"
 
     install: |
       bin.install "a"

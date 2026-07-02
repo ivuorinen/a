@@ -2,39 +2,79 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"filippo.io/age"
+	"filippo.io/age/agessh"
 	"github.com/spf13/cobra"
 )
 
-// tryDecrypt attempts to decrypt using the given key and output/input files.
-func tryDecrypt(keyPath, output, input string) error {
-	ageBin := "age"
-	if ageBin != "age" {
-		return fmt.Errorf("invalid binary for decryption: %s", ageBin)
+// tryDecrypt attempts to decrypt input to output using the SSH private key at
+// keyPath.
+//
+// Plaintext is written to a 0600 temp file in the target directory and renamed
+// onto output only after decryption fully succeeds. This is critical: age
+// authenticates the stream incrementally, so writing straight to output would
+// leave a partial, potentially group/world-readable plaintext fragment on disk
+// (and destroy any pre-existing file) whenever a decrypt fails partway — a
+// tampered or truncated ciphertext, a full disk, or a wrong-but-header-matching
+// attempt. The temp-then-rename keeps failures from ever touching the target.
+func tryDecrypt(keyPath, output, input string) (err error) {
+	if keyPath == "" || output == "" || input == "" {
+		return fmt.Errorf("invalid arguments for decryption: empty path")
 	}
-	ageArgs := []string{"-d", "-i", keyPath, "-o", output, input}
-	expectedFlags := map[string]bool{"-d": true, "-i": true, "-o": true}
-	for i, arg := range ageArgs {
-		if i == 0 || i == 2 || i == 4 {
-			if !expectedFlags[arg] && i != 0 {
-				return fmt.Errorf("unexpected flag in age arguments: %s", arg)
-			}
-		} else if arg == "" {
-			return fmt.Errorf("invalid argument for decryption: empty string")
+	// #nosec G304 -- keyPath comes from the --ssh-key flag, config, or a ~/.ssh scan
+	pem, err := os.ReadFile(keyPath)
+	if err != nil {
+		return fmt.Errorf("reading key %s: %w", keyPath, err)
+	}
+	identity, err := agessh.ParseIdentity(pem)
+	if err != nil {
+		return fmt.Errorf("parsing key %s: %w", keyPath, err)
+	}
+
+	// #nosec G304 -- input path is a validated CLI flag/argument
+	in, err := os.Open(input)
+	if err != nil {
+		return fmt.Errorf("opening input: %w", err)
+	}
+	defer func() { _ = in.Close() }()
+
+	r, err := age.Decrypt(in, identity)
+	if err != nil {
+		return err // wrong key or not an age file
+	}
+
+	// os.CreateTemp creates the file with 0600; the plaintext is never readable
+	// by group/other, even transiently.
+	tmp, err := os.CreateTemp(filepath.Dir(output), ".a-decrypt-*")
+	if err != nil {
+		return fmt.Errorf("creating temp output: %w", err)
+	}
+	tmpName := tmp.Name()
+	// Any failure below (including a failed rename) must remove the temp so no
+	// partial plaintext lingers.
+	defer func() {
+		if err != nil {
+			_ = os.Remove(tmpName)
 		}
+	}()
+
+	if _, err = io.Copy(tmp, r); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("writing plaintext: %w", err)
 	}
-	if !strings.HasSuffix(keyPath, "id_rsa") && !strings.HasSuffix(keyPath, "id_ed25519") {
-		return fmt.Errorf("invalid key file for decryption: %s", keyPath)
+	if err = tmp.Close(); err != nil {
+		return fmt.Errorf("closing temp output: %w", err)
 	}
-	if !strings.HasSuffix(output, ".txt") && !strings.HasSuffix(output, ".out") {
-		return fmt.Errorf("invalid output file for decryption: %s", output)
+	if err = os.Rename(tmpName, output); err != nil {
+		return fmt.Errorf("finalizing output: %w", err)
 	}
-	// #nosec G204 -- ageBin and ageArgs are validated above
-	return exec.Command(ageBin, ageArgs...).Run()
+	return nil
 }
 
 // selectSSHKey determines which SSH key to use based on flags and config.
@@ -45,72 +85,54 @@ func selectSSHKey(sshKeyFlag string, cfg *Config) string {
 	return cfg.SSHKeyPath
 }
 
-// tryAllKeys attempts decryption with all provided keys, returns true on success.
-func tryAllKeys(keys []string, input, output string, log *logrus.Logger, triedKeys *[]string) bool {
+// tryAllKeys attempts decryption with each key in turn, returning the keys it tried
+// and whether one succeeded.
+func tryAllKeys(keys []string, input, output string, log *slog.Logger) (tried []string, ok bool) {
 	for _, keyPath := range keys {
-		*triedKeys = append(*triedKeys, keyPath)
-		log.WithFields(logrus.Fields{
-			"input":  input,
-			"output": output,
-			"sshKey": keyPath,
-		}).Info("Trying decryption with SSH key")
+		tried = append(tried, keyPath)
+		log.Info("Trying decryption with SSH key", "input", input, "output", output, "sshKey", keyPath)
 		err := tryDecrypt(keyPath, output, input)
 		if err == nil {
 			log.Info("Decryption successful")
-			return true
+			return tried, true
 		}
-		log.WithError(err).Warnf("Decryption failed with key %s", keyPath)
+		log.Warn("Decryption failed with key", "key", keyPath, "error", err)
 	}
-	return false
+	return tried, false
+}
+
+// decryptOutput derives the decrypted filename from the input: it strips a
+// trailing ".age", or appends ".dec" when there is none.
+func decryptOutput(input string) string {
+	if base, ok := strings.CutSuffix(input, ".age"); ok {
+		return base
+	}
+	return input + ".dec"
 }
 
 // Decrypt returns a cobra.Command that decrypts files using age, scanning local SSH keys if needed.
-func Decrypt(cfg *Config, log *logrus.Logger) *cobra.Command {
+func Decrypt(cfg *Config, log *slog.Logger) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "decrypt",
-		Short: "Decrypt a file",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			input, _ := cmd.Flags().GetString("input")
-			output, _ := cmd.Flags().GetString("output")
+		Use:     "decrypt [input]",
+		Aliases: []string{"d"},
+		Short:   "Decrypt a file (output defaults to <input> without .age)",
+		Args:    cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			input, output, err := resolveIO(cmd, args, decryptOutput)
+			if err != nil {
+				return err
+			}
 			sshKeyFlag, _ := cmd.Flags().GetString("ssh-key")
 
-			if input == "" {
-				return fmt.Errorf("input file is required")
-			}
-			if output == "" {
-				return fmt.Errorf("output file is required")
-			}
-			if _, err := os.Stat(input); err != nil {
-				return fmt.Errorf("input file does not exist: %w", err)
-			}
-
-			sshKey := selectSSHKey(sshKeyFlag, cfg)
-			var triedKeys []string
-			var success bool
-
-			if sshKey != "" {
-				triedKeys = append(triedKeys, sshKey)
-				log.WithFields(logrus.Fields{
-					"input":  input,
-					"output": output,
-					"sshKey": sshKey,
-				}).Info("Trying decryption with provided SSH key")
-				if err := tryDecrypt(sshKey, output, input); err == nil {
-					log.Info("Decryption successful")
-					success = true
-				} else {
-					log.WithError(err).Warn("Decryption failed with provided SSH key")
-				}
-			} else {
-				keys, err := ScanSSHPrivateKeys()
-				if err != nil {
+			keys := []string{selectSSHKey(sshKeyFlag, cfg)}
+			if keys[0] == "" {
+				if keys, err = ScanSSHPrivateKeys(); err != nil {
 					return fmt.Errorf("could not scan ~/.ssh for private keys: %w", err)
 				}
-				success = tryAllKeys(keys, input, output, log, &triedKeys)
 			}
 
-			if !success {
-				return fmt.Errorf("decryption failed: none of the tried SSH keys matched\nTried keys: %v", triedKeys)
+			if tried, ok := tryAllKeys(keys, input, output, log); !ok {
+				return fmt.Errorf("decryption failed: none of the tried SSH keys matched\nTried keys: %v", tried)
 			}
 			return nil
 		},

@@ -6,17 +6,17 @@ on:
     - cron: '0 8 * * *' # Every day at 08:00
   workflow_call:
   workflow_dispatch:
-permissions:
-  contents: read
-  packages: read
-  statuses: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions: {} # least privilege by default; the job grants only what it needs
 jobs:
   stale:
     name: 🧹 Clean up stale issues and PRs
     runs-on: ubuntu-latest
     permissions:
-      contents: write # only for delete-branch option
-      issues: write
-      pull-requests: write
+      contents: write # delete branches of stale PRs (delete-branch option)
+      issues: write # comment on and close stale issues
+      pull-requests: write # comment on and close stale PRs
     steps:
-      - uses: ivuorinen/actions/stale@f2d15a840e8888ba4f0c348ea70b6522cf2dc541 # v2026.04.15
+      - uses: ivuorinen/actions/stale@de31e11dda6488eabe95e951ebb61c6d9d500865 # v2026.06.30
