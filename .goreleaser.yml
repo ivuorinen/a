@@ -199,7 +199,7 @@ dockers_v2:
       - "v{{ .Major }}.{{ .Minor }}"
       - "latest"
     dockerfile: Dockerfile
-    # ponytail: amd64 only, to match the pre-migration image; add linux/arm64 here to publish a multi-arch manifest (arm64 binaries already build).
+    # amd64 only, matching the pre-migration image; add linux/arm64 here for a multi-arch manifest (arm64 binaries already build)
     platforms:
       - linux/amd64
     flags:
