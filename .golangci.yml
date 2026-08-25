@@ -7,9 +7,11 @@ version: "2"
 run:
   timeout: 5m
   modules-download-mode: readonly
-  # No `go:` pin -- golangci-lint then reads the version from go.mod. A literal
-  # here drifted to 1.26 while go.mod moved to 1.27, so analyzers reasoned about
-  # different language semantics than the compiler.
+  # No `go:` pin -- golangci-lint then reads the version from go.mod, and it is
+  # the `go` directive (1.25.0) that it must match, not the newer `toolchain`
+  # line: the directive is the language version the compiler applies. A literal
+  # here drifted to 1.26 once already, so the analyzers reasoned about different
+  # language semantics than the compiler.
 
 linters:
   enable:

@@ -38,7 +38,7 @@ would leave `.config`, `.cache`, and `.local` in your working directory.
 Config is therefore not persisted between container runs. To keep it, mount a
 directory for it and set `-e XDG_CONFIG_HOME=/config`.
 
-**With Go** (requires Go 1.27+):
+**With Go** (requires Go 1.25+):
 
 ```bash
 go install github.com/ivuorinen/a@latest

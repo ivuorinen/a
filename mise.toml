@@ -12,7 +12,9 @@
 [tools]
 
 # --- language toolchain -------------------------------------------------------
-# Must match the `go` directive in go.mod; CI resolves it via go-version-file.
+# Must match the `toolchain` line in go.mod -- not the `go` directive, which is
+# the *minimum* language version the code builds against (1.25.0, the floor the
+# golang.org/x deps set). CI resolves the same toolchain via go-version-file.
 # A Go newer than the analyzers below can break them: a linter built with an
 # older Go refuses a module targeting a newer one ("the Go language version used
 # to build golangci-lint is lower than the targeted Go version").
