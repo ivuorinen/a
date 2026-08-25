@@ -41,7 +41,11 @@ func InitConfigPaths() (ConfigPaths, error) {
 
 	// Personal preference, I don't like the "$HOME/Library/Application Support/" path
 	if runtime.GOOS == "darwin" {
-		configDir = filepath.Join(os.Getenv("HOME"), ".config")
+		home, homeErr := os.UserHomeDir()
+		if homeErr != nil {
+			return ConfigPaths{}, fmt.Errorf("resolving home directory for the config path: %w", homeErr)
+		}
+		configDir = filepath.Join(home, ".config")
 	} else {
 		configDir, err = os.UserConfigDir()
 		if err != nil {
@@ -97,9 +101,14 @@ func LoadConfig(cfgFile string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not stat config file: %w", err)
 	}
-	// Reject only group/other access; stricter modes such as 0400 are fine.
+	// Reject only group/other access; stricter modes such as 0400 are fine. The
+	// remedy belongs in the message: this check runs in PersistentPreRunE, so it
+	// fails every command including `config set` — the documented way to change
+	// settings — and a rule with no stated fix leaves the user guessing.
 	if perm := info.Mode().Perm(); perm&0o077 != 0 {
-		return nil, fmt.Errorf("config file %s must not be group/other accessible (perms %#o)", cfgFile, perm)
+		return nil, fmt.Errorf(
+			"config file %s is group/other accessible (perms %#o); fix it with: chmod 600 %s",
+			cfgFile, perm, cfgFile)
 	}
 	// #nosec G304 -- cfgFile is supplied by InitConfigPaths (os.UserConfigDir-derived), not user input
 	data, err := os.ReadFile(cfgFile)
@@ -117,10 +126,31 @@ func LoadConfig(cfgFile string) (*Config, error) {
 }
 
 // applyConfigDefaults fills in derived defaults for any unset fields.
+//
+// The home directory comes from os.UserHomeDir, which errors when it cannot be
+// resolved. os.Getenv("HOME") does not: with HOME unset it yields "", and
+// filepath.Join turns that into the relative path ".local/state/a" — so the log
+// landed in whatever directory the command happened to run from, and a read-only
+// working directory made the MkdirAll fail and bricked every command.
+//
+// The state directory follows $XDG_STATE_HOME (default ~/.local/state) rather
+// than a hardcoded ~/.state, which is not a location any specification defines.
+// The config and cache paths already honor their XDG variables via
+// os.UserConfigDir/os.UserCacheDir; the log opting out stranded state in
+// ~/.state whenever a user relocated the other two. The standard library has no
+// os.UserStateDir, so this is resolved by hand.
 func applyConfigDefaults(cfg *Config) error {
 	if cfg.LogFilePath == "" {
-		stateDir := filepath.Join(os.Getenv("HOME"), ".state", "a")
-		// #nosec G703 -- stateDir is derived from HOME plus constants, not user input
+		stateBase := os.Getenv("XDG_STATE_HOME")
+		if stateBase == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("resolving home directory for the default log path: %w", err)
+			}
+			stateBase = filepath.Join(home, ".local", "state")
+		}
+		stateDir := filepath.Join(stateBase, "a")
+		// #nosec G703 -- stateDir is derived from XDG_STATE_HOME or os.UserHomeDir plus constants
 		if err := os.MkdirAll(stateDir, 0o700); err != nil {
 			return err
 		}
@@ -163,8 +193,17 @@ func SaveConfig(cfgFile string, cfg *Config) (err error) {
 }
 
 // ScanSSHPrivateKeys scans ~/.ssh for private keys matching id_* (excluding .pub).
+//
+// os.UserHomeDir rather than os.Getenv("HOME"): an unset HOME made the empty
+// string join to the relative ".ssh", so the scan read private keys out of the
+// current working directory — meaning a checkout could plant ./.ssh/id_* and have
+// them parsed.
 func ScanSSHPrivateKeys() ([]string, error) {
-	sshDir := filepath.Join(os.Getenv("HOME"), ".ssh")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("resolving home directory to scan for SSH keys: %w", err)
+	}
+	sshDir := filepath.Join(home, ".ssh")
 	files, err := os.ReadDir(sshDir)
 	if err != nil {
 		return nil, err

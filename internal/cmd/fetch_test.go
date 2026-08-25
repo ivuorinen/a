@@ -89,14 +89,18 @@ func TestFetchGitHubKeys_BodyReadError(t *testing.T) {
 func TestCollectRecipients(t *testing.T) {
 	log := discardLogger()
 
-	// Invalid GitHub username: warned and skipped, config + flag recipients returned.
+	// Invalid GitHub username: an error, not a silent skip. Returning the config
+	// recipients here produced a file the requested recipient could not open.
 	cfg := &Config{DefaultRecipients: []string{"/a.pub"}, GitHubUser: "bad user!"}
-	got, ghUser := collectRecipients(cfg, []string{"extra"}, "", log)
-	assert.Equal(t, []string{"/a.pub", "extra"}, got)
+	got, ghUser, err := collectRecipients(cfg, []string{"extra"}, "", log)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "invalid GitHub username")
+	assert.Nil(t, got)
 	assert.Equal(t, "bad user!", ghUser)
 
-	// No GitHub user: only config + flag recipients.
-	got2, ghUser2 := collectRecipients(&Config{DefaultRecipients: []string{"x"}}, nil, "", log)
+	// No GitHub user: only config + flag recipients, no error.
+	got2, ghUser2, err := collectRecipients(&Config{DefaultRecipients: []string{"x"}}, nil, "", log)
+	require.NoError(t, err)
 	assert.Equal(t, []string{"x"}, got2)
 	assert.Empty(t, ghUser2)
 
@@ -104,9 +108,102 @@ func TestCollectRecipients(t *testing.T) {
 	withGitHubKeysServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = fmt.Fprintln(w, "ssh-ed25519 GH")
 	})
-	got3, ghUser3 := collectRecipients(&Config{}, []string{"local"}, "octocat", log)
+	got3, ghUser3, err := collectRecipients(&Config{}, []string{"local"}, "octocat", log)
+	require.NoError(t, err)
 	assert.Equal(t, []string{"local", "ssh-ed25519 GH"}, got3)
 	assert.Equal(t, "octocat", ghUser3)
+
+	// A valid user whose keys cannot be fetched is also an error: encrypting
+	// without the requested recipient is the failure this guards.
+	withGitHubKeysServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+	got4, _, err := collectRecipients(&Config{DefaultRecipients: []string{"mine"}}, nil, "octocat", log)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "no public keys found")
+	assert.Nil(t, got4)
+}
+
+// TestEnsureWritableOutput covers the guard that keeps a derived output path from
+// silently replacing an unrelated file of the same name.
+func TestEnsureWritableOutput(t *testing.T) {
+	dir := t.TempDir()
+	missing := filepath.Join(dir, "nope.age")
+	require.NoError(t, ensureWritableOutput(missing, false))
+
+	existing := filepath.Join(dir, "there.age")
+	require.NoError(t, os.WriteFile(existing, []byte("keep"), 0o600))
+	err := ensureWritableOutput(existing, false)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "--force")
+	assert.NoError(t, ensureWritableOutput(existing, true), "--force must permit replacement")
+}
+
+// TestEncryptCmd_RefusesExistingOutput drives the whole command: a pre-existing
+// output must survive untouched, and --force must replace it.
+func TestEncryptCmd_RefusesExistingOutput(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "msg.txt")
+	require.NoError(t, os.WriteFile(in, []byte("plaintext"), 0o600))
+	out := in + ".age"
+	require.NoError(t, os.WriteFile(out, []byte("OLD-CIPHERTEXT"), 0o600))
+
+	_, pub := makeSSHKey(t, dir)
+	run := func(extra ...string) error {
+		c := Encrypt(&Config{DefaultRecipients: []string{pub}}, discardLogger())
+		require.NoError(t, c.Flags().Set("input", in))
+		for i := 0; i < len(extra); i += 2 {
+			require.NoError(t, c.Flags().Set(extra[i], extra[i+1]))
+		}
+		return c.RunE(c, nil)
+	}
+
+	err := run()
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "already exists")
+	body, readErr := os.ReadFile(out) // #nosec G304 -- test temp path
+	require.NoError(t, readErr)
+	assert.Equal(t, "OLD-CIPHERTEXT", string(body), "refused run must not touch the output")
+
+	require.NoError(t, run("force", "true"))
+	body, readErr = os.ReadFile(out) // #nosec G304 -- test temp path
+	require.NoError(t, readErr)
+	assert.NotEqual(t, "OLD-CIPHERTEXT", string(body), "--force must replace the output")
+}
+
+// TestEncryptCmd_GitHubUserPositionalWithInputFlag pins the arg-slot shift:
+// --input moves the github-user positional from args[1] to args[0], and reading
+// a fixed index there discarded the requested recipient and exited 0 -- producing
+// a file the intended recipient could not open.
+func TestEncryptCmd_GitHubUserPositionalWithInputFlag(t *testing.T) {
+	withGitHubKeysServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+	dir := t.TempDir()
+	in := filepath.Join(dir, "msg.txt")
+	require.NoError(t, os.WriteFile(in, []byte("plaintext"), 0o600))
+	_, pub := makeSSHKey(t, dir)
+
+	c := Encrypt(&Config{DefaultRecipients: []string{pub}}, discardLogger())
+	require.NoError(t, c.Flags().Set("input", in))
+	err := c.RunE(c, []string{"octocat"})
+
+	require.Error(t, err, "the positional github-user must not be discarded")
+	assert.ErrorContains(t, err, "no public keys found")
+	assert.NoFileExists(t, in+".age", "no output without the requested recipient")
+}
+
+// An argument the command cannot place must stop the run rather than be dropped.
+func TestEncryptCmd_RejectsUnplaceableArg(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "msg.txt")
+	require.NoError(t, os.WriteFile(in, []byte("plaintext"), 0o600))
+	_, pub := makeSSHKey(t, dir)
+
+	c := Encrypt(&Config{DefaultRecipients: []string{pub}}, discardLogger())
+	require.NoError(t, c.Flags().Set("input", in))
+	require.NoError(t, c.Flags().Set("github-user", "octocat"))
+	assert.ErrorContains(t, c.RunE(c, []string{"stray"}), "unexpected argument")
 }
 
 func TestEncryptCmd_Validation(t *testing.T) {

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -21,25 +22,62 @@ import (
 // commands. Input comes from --input or the first positional arg; when --output
 // is omitted it is derived from the input via deriveOutput. Both must resolve to
 // non-empty values and the input file must exist.
-func resolveIO(cmd *cobra.Command, args []string, deriveOutput func(string) string) (input, output string, err error) {
+//
+// It returns the positional args it did not consume. Callers must take their own
+// positionals from that remainder, never from a fixed index: --input changes
+// which slot each argument lands in, and reading args[1] unconditionally made
+// `encrypt -i file user` discard the requested recipient and exit 0.
+func resolveIO(
+	cmd *cobra.Command,
+	args []string,
+	deriveOutput func(string) string,
+) (input, output string, rest []string, err error) {
 	input, _ = cmd.Flags().GetString("input")
-	if input == "" && len(args) > 0 {
-		input = args[0]
+	rest = args
+	if input == "" && len(rest) > 0 {
+		input, rest = rest[0], rest[1:]
 	}
 	output, _ = cmd.Flags().GetString("output")
 	if output == "" && input != "" {
 		output = deriveOutput(input)
 	}
 	if input == "" {
-		return "", "", fmt.Errorf("input file is required")
+		return "", "", nil, fmt.Errorf("input file is required")
 	}
 	if output == "" {
-		return "", "", fmt.Errorf("output file is required")
+		return "", "", nil, fmt.Errorf("output file is required")
 	}
 	if _, err := os.Stat(input); err != nil {
-		return "", "", fmt.Errorf("input file does not exist: %w", err)
+		return "", "", nil, fmt.Errorf("input file does not exist: %w", err)
 	}
-	return input, output, nil
+	return input, output, rest, nil
+}
+
+// ensureWritableOutput refuses to replace an existing output file unless force is
+// set.
+//
+// encryptFile and tryDecrypt both finish with os.Rename, which replaces the
+// destination unconditionally. Since both commands *derive* the output path by
+// default, the destructive case is the common one: the user names one file and
+// the tool picks a target that often already exists. Without this check,
+// re-encrypting destroys the previous ciphertext and decrypting reverts a newer
+// plaintext, both silently and with exit 0.
+//
+// This is a convenience check, not a lock: the file can appear between the Stat
+// and the Rename. That race is acceptable for a single-user CLI, and the check
+// still converts the everyday accident into an error.
+func ensureWritableOutput(output string, force bool) error {
+	if force {
+		return nil
+	}
+	_, err := os.Stat(output)
+	if err == nil {
+		return fmt.Errorf("output file %s already exists; pass --force to overwrite", output)
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("checking output %s: %w", output, err)
+	}
+	return nil
 }
 
 // Encrypt returns a cobra.Command that encrypts files using age, supporting GitHub key fetching.
@@ -50,17 +88,29 @@ func Encrypt(cfg *Config, log *slog.Logger) *cobra.Command {
 		Short:   "Encrypt a file (output defaults to <input>.age)",
 		Args:    cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			input, output, err := resolveIO(cmd, args, func(in string) string { return in + ".age" })
+			input, output, rest, err := resolveIO(cmd, args, func(in string) string { return in + ".age" })
 			if err != nil {
+				return err
+			}
+			force, _ := cmd.Flags().GetBool("force")
+			if err := ensureWritableOutput(output, force); err != nil {
 				return err
 			}
 			recipients, _ := cmd.Flags().GetStringSlice("recipient")
 			ghUserFlag, _ := cmd.Flags().GetString("github-user")
-			if ghUserFlag == "" && len(args) > 1 {
-				ghUserFlag = args[1]
+			if ghUserFlag == "" && len(rest) > 0 {
+				ghUserFlag, rest = rest[0], rest[1:]
+			}
+			// An argument the command cannot place is an error, not a discard:
+			// silently dropping it produced a file without the requested recipient.
+			if len(rest) > 0 {
+				return fmt.Errorf("unexpected argument %q", rest[0])
 			}
 
-			allRecipients, ghUser := collectRecipients(cfg, recipients, ghUserFlag, log)
+			allRecipients, ghUser, err := collectRecipients(cfg, recipients, ghUserFlag, log)
+			if err != nil {
+				return err
+			}
 			if len(allRecipients) == 0 {
 				return fmt.Errorf("at least one recipient is required")
 			}
@@ -89,34 +139,45 @@ func Encrypt(cfg *Config, log *slog.Logger) *cobra.Command {
 	cmd.Flags().StringP("output", "o", "", "Output file for encrypted data")
 	cmd.Flags().StringSliceP("recipient", "r", []string{}, "Recipient public key file or string")
 	cmd.Flags().String("github-user", "", "GitHub username to fetch public keys for encryption")
+	cmd.Flags().BoolP("force", "f", false, "Overwrite the output file if it already exists")
 	return cmd
 }
 
 // collectRecipients gathers recipients from config defaults, the --recipient flag,
 // and (when a GitHub user is set) that user's published keys. It returns the
 // recipient list and the resolved GitHub username.
+//
+// A requested GitHub user that yields no keys is an error, not a warning. Failing
+// open here produced a file the intended recipient could not open, with exit 0 and
+// nothing on stderr: an invalid username, a 404, or a network blip silently
+// narrowed the recipient set to whatever default_recipients held. A user who then
+// deleted the plaintext had destroyed data the recipient could never recover.
 func collectRecipients(
 	cfg *Config,
 	recipients []string,
 	ghUserFlag string,
 	log *slog.Logger,
-) ([]string, string) {
+) ([]string, string, error) {
 	allRecipients := slices.Concat(cfg.DefaultRecipients, recipients)
 
 	ghUser := ghUserFlag
 	if ghUser == "" && cfg.GitHubUser != "" {
 		ghUser = cfg.GitHubUser
 	}
+	if ghUser == "" {
+		return allRecipients, "", nil
+	}
 
 	// A valid username is safe to interpolate into the keys URL and cache filename.
-	if ghUser != "" {
-		if !githubUsernameRE.MatchString(ghUser) {
-			log.Warn("Invalid GitHub username", "user", ghUser)
-		} else {
-			allRecipients = append(allRecipients, fetchGitHubKeys(cfg, ghUser, log)...)
-		}
+	if !githubUsernameRE.MatchString(ghUser) {
+		return nil, ghUser, fmt.Errorf("invalid GitHub username %q", ghUser)
 	}
-	return allRecipients, ghUser
+	keys := fetchGitHubKeys(cfg, ghUser, log)
+	if len(keys) == 0 {
+		return nil, ghUser, fmt.Errorf(
+			"no public keys found for GitHub user %q; refusing to encrypt without the requested recipient", ghUser)
+	}
+	return append(allRecipients, keys...), ghUser, nil
 }
 
 // githubUsernameRE matches a valid GitHub username (alphanumerics and hyphens, no
