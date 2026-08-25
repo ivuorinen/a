@@ -63,3 +63,10 @@ prek = "0.4.14"
 # cosign matches the `cosign-release` pinned in .github/workflows/release.yml.
 cosign = "2.6.5"
 syft = "1.51.0"
+
+[settings]
+# Every tool here is pinned explicitly, so mise has no reason to also read a
+# version out of go.mod. Reading it is deprecated anyway (mise removes the
+# go.mod `go` directive as a version source in 2026.11.0): that directive is a
+# minimum compatible version, not the version the project is built with.
+idiomatic_version_file_enable_tools = []
