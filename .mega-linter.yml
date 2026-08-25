@@ -2,6 +2,15 @@
 # Configuration file for MegaLinter
 # See all available variables at
 # https://megalinter.io/configuration/ and in linters documentation
+#
+# Read by .github/workflows/pr-lint.yml -> ivuorinen/actions/pr-lint ->
+# oxsecurity/megalinter. Nothing in this repo greps as "megalinter": the
+# invocation lives inside the external composite action, which is why this file
+# once looked unreferenced and was deleted as dead config.
+#
+# ENABLE_LINTERS below is an allow-list -- deleting it does not disable CI
+# linting, it unleashes MegaLinter's full default linter set (GO_GOLANGCI_LINT
+# and GO_REVIVE included) on every PR.
 APPLY_FIXES: all
 SHOW_ELAPSED_TIME: false # Show elapsed time at the end of MegaLinter run
 PARALLEL: true
@@ -9,7 +18,6 @@ VALIDATE_ALL_CODEBASE: true
 FILEIO_REPORTER: false # Generate file.io report
 GITHUB_STATUS_REPORTER: true # Generate GitHub status report
 IGNORE_GENERATED_FILES: true # Ignore generated files
-JAVASCRIPT_DEFAULT_STYLE: prettier # Default style for JavaScript
 PRINT_ALPACA: false # Print Alpaca logo in console
 SARIF_REPORTER: true # Generate SARIF report
 SHOW_SKIPPED_LINTERS: false # Show skipped linters in MegaLinter log
@@ -22,7 +30,5 @@ ENABLE_LINTERS:
   - JSON_PRETTIER
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
-JAVASCRIPT_ES_CONFIG_FILE: .eslintrc.json
-TYPESCRIPT_ES_CONFIG_FILE: .eslintrc.json
 FILTER_REGEX_EXCLUDE: >
   (node_modules|\.automation/test)
