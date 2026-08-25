@@ -27,7 +27,7 @@ repos:
       - id: sync-pre-commit-deps
 
   - repo: https://github.com/tekwizely/pre-commit-golang
-    rev: v1.0.0-rc.1
+    rev: v1.0.0-rc.4
     hooks:
       - id: go-build-mod
         alias: build
@@ -56,7 +56,7 @@ repos:
       - id: yamllint
 
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.12.0-2
+    rev: v3.13.1-1
     hooks:
       - id: shfmt
 
@@ -73,8 +73,14 @@ repos:
         args: ["-shellcheck="]
 
   - repo: https://github.com/bridgecrewio/checkov.git
-    rev: "3.3.11"
+    rev: "3.3.13"
     hooks:
       - id: checkov
+        # Upstream gates this hook on `files: \.tf$`; with no Terraform in this
+        # repo that meant it silently never ran -- "Skipped", which reads like
+        # "Passed" in a hook summary. The Dockerfile and the workflows are the
+        # IaC surface here, so trigger on those. The hook ignores filenames
+        # (pass_filenames: false) and always scans `-d .`.
+        files: ^(Dockerfile|\.github/workflows/.*\.ya?ml)$
         args:
           - "--quiet"

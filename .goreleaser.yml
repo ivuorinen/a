@@ -20,7 +20,9 @@ builds:
     main: .
     binary: a
 
-    # Custom ldflags. version is a package-level var in main so -X can set it;
+    # Custom ldflags. `version` in main is a plain uninitialized string so -X can
+    # patch it -- cmd/link only patches a variable that is uninitialized or set to
+    # a constant, so giving it a function initializer makes this a silent no-op.
     # commit/date/builtBy were dropped as they were never surfaced anywhere.
     ldflags:
       - -s -w
@@ -71,16 +73,16 @@ archives:
   - id: a
     formats: ["binary", "tar.gz"]
 
-    # Archive format
-    format_overrides:
-      - goos: windows
-        formats: [zip]
-
-    # Files to include in archive
+    # Files to include in archive. Do NOT reinstate a docs/* glob: docs/ holds the
+    # audit findings store, so the glob shipped the project's own defect log --
+    # open findings included -- to every user who downloaded a tarball.
     files:
       - LICENSE.md
+      # Required by the BSD-3/Apache-2.0 dependencies linked into the binary;
+      # LICENSE.md is the project's own MIT terms and does not cover them.
+      # Regenerate with `just notices` when the module set changes.
+      - THIRD_PARTY_NOTICES.md
       - README.md
-      - docs/*
 
 # Checksum configuration
 checksum:
@@ -173,7 +175,7 @@ nfpms:
     vendor: ivuorinen
     homepage: https://github.com/ivuorinen/a
     maintainer: ivuorinen
-    description: Modern, secure Go-based CLI tool for managing Fail2Ban jails and bans
+    description: CLI wrapper for age encryption using SSH and GitHub keys
     license: MIT
 
     formats:
@@ -186,6 +188,8 @@ nfpms:
     contents:
       - src: ./LICENSE.md
         dst: /usr/share/doc/a/LICENSE.md
+      - src: ./THIRD_PARTY_NOTICES.md
+        dst: /usr/share/doc/a/THIRD_PARTY_NOTICES.md
       - src: ./README.md
         dst: /usr/share/doc/a/README.md
 
@@ -199,6 +203,10 @@ dockers_v2:
       - "v{{ .Major }}.{{ .Minor }}"
       - "latest"
     dockerfile: Dockerfile
+    # The image redistributes the same statically linked deps as the archives,
+    # so it carries the same notices; Dockerfile COPYs it from the build context.
+    extra_files:
+      - THIRD_PARTY_NOTICES.md
     # amd64 only, matching the pre-migration image; add linux/arm64 here for a multi-arch manifest (arm64 binaries already build)
     platforms:
       - linux/amd64

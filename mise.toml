@@ -1,0 +1,65 @@
+# Tool versions for this repository.
+#
+# Every tool the repo actually invokes -- from the Justfile, .pre-commit-config.yaml,
+# .goreleaser.yml, and .github/workflows/ -- pinned so a local run matches CI.
+#
+# Versions are not chosen freely: each one mirrors a pin that already exists
+# somewhere else in the repo, and the comment says where. When you bump one,
+# bump its counterpart too or the two will silently disagree.
+#
+# Tasks live in the Justfile (`just --list`), not here.
+
+[tools]
+
+# --- language toolchain -------------------------------------------------------
+# Must match the `go` directive in go.mod; CI resolves it via go-version-file.
+# A Go newer than the analyzers below can break them: a linter built with an
+# older Go refuses a module targeting a newer one ("the Go language version used
+# to build golangci-lint is lower than the targeted Go version").
+go = "1.27.0"
+
+# --- Go static analysis --------------------------------------------------------
+# Matches the version pinned in .github/workflows/test.yml's golangci-lint-action.
+# Its .golangci.yml enables 27 linters, gosec and staticcheck among them, so the
+# two standalone entries below are for running a single analyzer directly.
+golangci-lint = "2.13.1"
+staticcheck = "2026.2.1"
+# github: rather than aqua: -- both resolve to a byte-identical binary, but the
+# github backend verifies the release's GitHub artifact attestations, where aqua
+# only checks a checksum. gosec has no plain registry entry either way.
+"github:securego/gosec" = "2.28.0"
+# No aqua/registry entry, so this builds from source with the Go pinned above.
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.7.0"
+
+# --- formatters and linters the Justfile calls directly ------------------------
+# These versions match the corresponding `rev` in .pre-commit-config.yaml, so
+# `just lint` and `just precommit` cannot disagree about the same file.
+"npm:markdownlint-cli" = "0.49.1" # pre-commit rev v0.49.1
+yamllint = "1.38.0"               # pre-commit rev v1.38.0
+yamlfmt = "0.21.0"                # pre-commit rev v0.21.0
+shfmt = "3.13.1"                  # pre-commit rev v3.13.1-1
+shellcheck = "0.11.0"             # pre-commit rev v0.11.0
+actionlint = "1.7.12"             # pre-commit rev v1.7.12
+checkov = "3.3.13"                # pre-commit rev 3.3.13
+# `just format` runs goimports directly; golangci-lint also applies it as a
+# formatter, so keep this current with whatever that bundles.
+"go:golang.org/x/tools/cmd/goimports" = "0.49.0"
+
+# --- build, release, and hooks -------------------------------------------------
+just = "1.58.0"
+# release.yml pins the action to "~> v2", so any v2 is acceptable.
+# Held at 2.17.0 deliberately: 2.18.0 fails mise's provenance check, because
+# upstream now signs releases as "https://dotcom.releases.github.com" while aqua
+# still expects "goreleaser/goreleaser/.github/workflows/release.yml". Bumping to
+# 2.18.0 errors at install; `ubi:goreleaser/goreleaser` installs it but skips
+# attestation verification, which is not worth trading for one minor version.
+goreleaser = "2.17.0"
+# `just precommit` prefers prek and falls back to pre-commit; pinning prek here
+# means the fallback is never needed.
+prek = "0.4.14"
+# goreleaser shells out to these during `just release`: `signs.cmd: cosign` and
+# the `sboms` block (syft). Without them a local release run skips or fails those
+# stages, so a snapshot build would not exercise what CI does.
+# cosign matches the `cosign-release` pinned in .github/workflows/release.yml.
+cosign = "2.6.5"
+syft = "1.51.0"
