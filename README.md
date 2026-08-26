@@ -21,7 +21,7 @@ put `a` on your `PATH`.
 ```bash
 sudo dpkg -i a_<version>_linux_amd64.deb
 sudo rpm -i a_<version>_linux_amd64.rpm
-sudo apk add --allow-untrusted a_<version>_linux_amd64.apk
+sudo apk add --allow-untrusted ./a_<version>_linux_amd64.apk
 ```
 
 **Container** — `ghcr.io/ivuorinen/a`:
@@ -72,11 +72,12 @@ downloaded until you check that against it:
 sha256sum --ignore-missing --check checksums.txt
 ```
 
-Without GNU coreutils (macOS, BSD), compare the one archive you downloaded:
+`--ignore-missing` skips the platforms you did not download; it still exits
+nonzero if nothing was verified. Without GNU coreutils (macOS, BSD), check the
+one archive you did download:
 
 ```bash
-shasum -a 256 a_<version>_darwin_arm64.tar.gz
-grep darwin_arm64 checksums.txt
+grep a_<version>_darwin_arm64.tar.gz checksums.txt | shasum -a 256 -c -
 ```
 
 ## Commands
