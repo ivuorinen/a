@@ -74,7 +74,8 @@ sha256sum --ignore-missing --check checksums.txt
 
 `--ignore-missing` skips the platforms you did not download; it still exits
 nonzero if nothing was verified. Without GNU coreutils (macOS, BSD), check the
-one archive you did download:
+one archive you did download — substitute its own platform suffix for the
+`darwin_arm64` in the example:
 
 ```bash
 grep a_<version>_darwin_arm64.tar.gz checksums.txt | shasum -a 256 -c -
