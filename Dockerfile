@@ -2,7 +2,7 @@
 # `alpine:latest` made ghcr.io/ivuorinen/a:vX.Y.Z non-reproducible, and
 # .goreleaser.yml passes --pull=true, which guaranteed the drift. Renovate keeps
 # this line current.
-FROM alpine:3.22@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 # ca-certificates is deliberately unpinned. Alpine's package index only carries
 # the current version of each package, so `ca-certificates=<version>` starts
 # failing the build the day alpine publishes a new one -- a pin that breaks on a
