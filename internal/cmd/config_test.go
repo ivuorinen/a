@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,6 +27,24 @@ func TestConfig_BareShowsHelpAndConfig(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, out, "a config set")
 	assert.Contains(t, out, "github_user: octocat")
+}
+
+// A mistyped subcommand must fail, not fall through to the bare `config` banner
+// and exit 0.
+//
+// The command has to be run through a parent here, the way a.go wires it, not
+// through runConfig: cobra's legacyArgs rejects unknown args on a *root* command
+// with subcommands, but returns nil once the same command has a parent. Testing
+// ConfigCmd standalone therefore passes with or without the Args validator and
+// proves nothing.
+func TestConfig_RejectsUnknownSubcommand(t *testing.T) {
+	root := &cobra.Command{Use: "a"}
+	root.AddCommand(ConfigCmd(&Config{}, func(*Config) error { return nil }))
+	var out bytes.Buffer
+	root.SetOut(&out)
+	root.SetErr(&out)
+	root.SetArgs([]string{"config", "shwo"})
+	require.Error(t, root.Execute())
 }
 
 func TestConfig_Show(t *testing.T) {

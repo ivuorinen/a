@@ -19,7 +19,9 @@ put `a` on your `PATH`.
 **Linux packages** — `.deb`, `.rpm`, and `.apk` are attached to every release:
 
 ```bash
-sudo dpkg -i a_<version>_linux_amd64.deb    # or: rpm -i … / apk add --allow-untrusted …
+sudo dpkg -i a_<version>_linux_amd64.deb
+sudo rpm -i a_<version>_linux_amd64.rpm
+sudo apk add --allow-untrusted ./a_<version>_linux_amd64.apk
 ```
 
 **Container** — `ghcr.io/ivuorinen/a`:
@@ -61,6 +63,22 @@ cosign verify-blob checksums.txt \
   --signature checksums.txt.sig \
   --certificate-identity-regexp 'https://github.com/ivuorinen/a/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+That authenticates `checksums.txt` itself. It says nothing about the archive you
+downloaded until you check that against it:
+
+```bash
+sha256sum --ignore-missing --check checksums.txt
+```
+
+`--ignore-missing` skips the platforms you did not download; it still exits
+nonzero if nothing was verified. Without GNU coreutils (macOS, BSD), check the
+one archive you did download — substitute its own platform suffix for the
+`darwin_arm64` in the example:
+
+```bash
+grep a_<version>_darwin_arm64.tar.gz checksums.txt | shasum -a 256 -c -
 ```
 
 ## Commands
@@ -105,8 +123,9 @@ a d message.txt.age
 
 Stored at `$XDG_CONFIG_HOME/a/config.yaml` (Linux and BSD, default
 `~/.config/a/config.yaml`) or `~/.config/a/config.yaml` (macOS), and created with
-defaults on first run. The file must not be group- or other-readable; if it is,
-`a` refuses to run and tells you the `chmod` to apply.
+defaults on first run. The file must not be group- or other-accessible: any bit
+set in the group or other triplet — not just the read bits — makes `a` refuse to
+run and print the `chmod` to apply.
 
 | Key | Description |
 | --- | --- |

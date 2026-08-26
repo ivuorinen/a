@@ -27,6 +27,10 @@ func ConfigCmd(cfg *Config, saveConfig func(*Config) error) *cobra.Command {
 		Use:     "config",
 		Aliases: []string{"c"},
 		Short:   "View or change configuration (set|rem|show)",
+		// Without this, cobra's legacyArgs accepts anything for a subcommand that
+		// itself has subcommands, so `a config shwo` printed the usage banner and
+		// exited 0 — a typo'd subcommand read as success.
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			_, err := fmt.Fprintf(cmd.OutOrStdout(), "Usage:\n"+
 				"  a config show             Show current configuration\n"+
