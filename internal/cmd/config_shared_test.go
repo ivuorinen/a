@@ -11,10 +11,20 @@ import (
 
 func TestApplyConfigDefaults(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_STATE_HOME", "")
 
 	cfg := &Config{}
 	require.NoError(t, applyConfigDefaults(cfg))
-	assert.Contains(t, cfg.LogFilePath, filepath.Join(".state", "a", "cli.log"))
+	assert.Contains(t, cfg.LogFilePath, filepath.Join(".local", "state", "a", "cli.log"))
+
+	// XDG_STATE_HOME must win: config and cache already honor their XDG variables,
+	// and the log ignoring its own stranded state in ~/.state whenever a user
+	// relocated the other two.
+	state := t.TempDir()
+	t.Setenv("XDG_STATE_HOME", state)
+	cfg3 := &Config{}
+	require.NoError(t, applyConfigDefaults(cfg3))
+	assert.Equal(t, filepath.Join(state, "a", "cli.log"), cfg3.LogFilePath)
 
 	cfg2 := &Config{LogFilePath: "/custom.log"}
 	require.NoError(t, applyConfigDefaults(cfg2))
@@ -23,6 +33,7 @@ func TestApplyConfigDefaults(t *testing.T) {
 
 func TestLoadConfig_MissingReturnsDefaults(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_STATE_HOME", "") // else the default log path escapes to the real home
 	cfg, err := LoadConfig(filepath.Join(t.TempDir(), "nope.yaml"))
 	require.NoError(t, err)
 	assert.NotEmpty(t, cfg.LogFilePath)
@@ -34,10 +45,14 @@ func TestLoadConfig_RejectsGroupOtherPerms(t *testing.T) {
 	require.NoError(t, os.WriteFile(p, []byte("github_user: x\n"), 0o644))
 	_, err := LoadConfig(p)
 	assert.ErrorContains(t, err, "group/other accessible")
+	// The check runs in PersistentPreRunE, so it blocks `config set` too -- the
+	// remedy has to be in the message or the user is stuck guessing.
+	assert.ErrorContains(t, err, "chmod 600", "the error must name the fix")
 }
 
 func TestLoadConfig_AcceptsStricterPerms(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_STATE_HOME", "") // else the default log path escapes to the real home
 	p := filepath.Join(t.TempDir(), "config.yaml")
 	require.NoError(t, os.WriteFile(p, []byte("github_user: ok\n"), 0o600))
 	require.NoError(t, os.Chmod(p, 0o400)) // stricter than 0600 must be accepted
@@ -64,6 +79,7 @@ func TestInitConfigPaths_Full(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "cfg"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
 
 	paths, err := InitConfigPaths()
 	require.NoError(t, err)

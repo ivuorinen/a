@@ -1,0 +1,59 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Test
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions: {} # least privilege by default; the job grants only what it needs
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest # ships ssh-keygen, which the key-generating tests need
+    timeout-minutes: 10
+    permissions:
+      contents: read # check out the repository
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: "go.mod"
+
+      - name: Lint
+        # .golangci.yml enables 27 linters that nothing ran: golangci-lint is in no
+        # workflow, and pr-lint.yml's MegaLinter allow-list contains no Go linter.
+        # --fix=false overrides `issues.fix: true` in .golangci.yml so CI reports
+        # instead of rewriting the source it is meant to be checking.
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.13.1
+          args: --fix=false
+
+      - name: Check third-party notices are current
+        # The notices file is generated from the module set and ships in every
+        # release artifact, so a dependency bump that forgets `just notices`
+        # publishes attribution for the wrong versions -- or omits a new
+        # dependency's license entirely. Regenerate and diff.
+        # git status --porcelain, not git diff --exit-code: diff only compares
+        # tracked files, so it silently passes if the file is untracked or was
+        # removed from git -- which is the same compliance gap as a stale one.
+        run: |
+          ./scripts/gen-notices.sh
+          if [ -n "$(git status --porcelain -- THIRD_PARTY_NOTICES.md)" ]; then
+            git --no-pager diff -- THIRD_PARTY_NOTICES.md
+            echo "::error::THIRD_PARTY_NOTICES.md is stale or untracked - run 'just notices' and commit"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: go test -race -coverprofile=coverage.out ./...

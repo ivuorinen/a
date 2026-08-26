@@ -12,11 +12,28 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
-	"github.com/ivuorinen/a/cmd"
+	"github.com/ivuorinen/a/internal/cmd"
 )
 
 func discardLogger() *slog.Logger {
 	return slog.New(slog.NewJSONHandler(io.Discard, nil))
+}
+
+// TestBuildVersionPrefersLdflagsStamp guards the -X override. cmd/link only
+// patches a variable that is uninitialized or constant, so initializing
+// `version` with a function call turned .goreleaser.yml's -X into a silent
+// no-op and left releases reporting a VCS pseudo-version. The failure is
+// invisible in a plain `go build`, which VCS stamping rescues, so it has to be
+// pinned here.
+func TestBuildVersionPrefersLdflagsStamp(t *testing.T) {
+	old := version
+	t.Cleanup(func() { version = old })
+
+	version = "1.2.3-stamped"
+	assert.Equal(t, "1.2.3-stamped", buildVersion(), "an ldflags stamp must win")
+
+	version = ""
+	assert.NotEmpty(t, buildVersion(), "with no stamp, fall back to build info")
 }
 
 func TestInitConfigPaths(t *testing.T) {
@@ -42,6 +59,7 @@ func TestConfigWrappers(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "cfg"))
 	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
 
 	require.NoError(t, initConfigPaths())
 	assert.NotEmpty(t, cfgFile)
@@ -57,8 +75,8 @@ func TestConfigWrappers(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "wrapped", reloaded.GitHubUser)
 
-	assert.NoError(t, setupLogging(true))
-	assert.NoError(t, setupLogging(false))
+	setupLogging(true)
+	setupLogging(false)
 }
 
 func TestLoadAndSaveConfig(t *testing.T) {
@@ -81,6 +99,10 @@ func TestLoadAndSaveConfig(t *testing.T) {
 }
 
 func TestDefaultLogFilePath(t *testing.T) {
+	// Isolate the state dir: XDG_STATE_HOME outranks HOME, so an inherited value
+	// would send the default log path into the developer's real home.
+	t.Setenv("XDG_STATE_HOME", filepath.Join(t.TempDir(), "state"))
+
 	tempDir := t.TempDir()
 	cfgFile := filepath.Join(tempDir, "config.yaml")
 
@@ -115,15 +137,20 @@ func TestCmdConfig(t *testing.T) {
 
 // Helper to generate a temporary SSH keypair for testing.
 //
-// Each keypair is placed in its own subdirectory so multiple keypairs can be
-// generated under the same parent dir without ssh-keygen refusing to overwrite an
-// existing id_rsa. The file is still named id_rsa, which decryption requires.
-func generateSSHKeyPair(dir string) (privKey, pubKey string, err error) {
-	keyDir, err := os.MkdirTemp(dir, "key")
-	if err != nil {
-		return "", "", err
+// Each keypair gets its own t.TempDir() so several can be generated within one
+// test without ssh-keygen refusing to overwrite an existing id_rsa. The file is
+// still named id_rsa, which decryption requires. t.TempDir() rather than
+// os.MkdirTemp: it registers its own cleanup and needs no parent directory
+// threaded through the callers.
+//
+// Callers must guard with requireSSHKeygen: ssh-keygen is a build-environment
+// dependency, and its absence must skip rather than report as a product failure.
+func generateSSHKeyPair(t *testing.T) (privKey, pubKey string, err error) {
+	t.Helper()
+	if _, lookErr := exec.LookPath("ssh-keygen"); lookErr != nil {
+		t.Skip("ssh-keygen not available")
 	}
-	privKey = filepath.Join(keyDir, "id_rsa")
+	privKey = filepath.Join(t.TempDir(), "id_rsa")
 	pubKey = privKey + ".pub"
 	// #nosec G204 -- test helper; all args are literals except privKey, which is a path under a test temp dir
 	cmd := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-f", privKey)
@@ -138,7 +165,7 @@ func TestEncryptDecrypt_Success(t *testing.T) {
 	plaintext := []byte("This is a secret message for encryption test.")
 
 	// Generate SSH keypair
-	privKey, pubKey, err := generateSSHKeyPair(tempDir)
+	privKey, pubKey, err := generateSSHKeyPair(t)
 	require.NoError(t, err, "ssh-keygen should succeed")
 
 	// Write plaintext file
@@ -183,9 +210,9 @@ func TestEncryptDecrypt_WrongKey(t *testing.T) {
 	plaintext := []byte("Secret message for wrong key test.")
 
 	// Generate two SSH keypairs
-	_, pubKey1, err := generateSSHKeyPair(tempDir)
+	_, pubKey1, err := generateSSHKeyPair(t)
 	require.NoError(t, err)
-	privKey2, _, err := generateSSHKeyPair(tempDir)
+	privKey2, _, err := generateSSHKeyPair(t)
 	require.NoError(t, err)
 
 	// Write plaintext file
@@ -241,7 +268,7 @@ func TestSetupLoggingFallback(t *testing.T) {
 	// every command (including the `config` command needed to fix it).
 	dir := t.TempDir()
 	cfg = &cmd.Config{LogFilePath: dir}
-	assert.NoError(t, setupLogging(false), "bad log path should fall back to stderr, not error")
+	setupLogging(false) // must not panic; degrades to stderr
 }
 
 func TestInitConfigPathsWrapperError(t *testing.T) {
@@ -282,6 +309,9 @@ func TestCLIIntegration(t *testing.T) {
 		"HOME="+home,
 		"XDG_CONFIG_HOME="+filepath.Join(home, "cfg"),
 		"XDG_CACHE_HOME="+filepath.Join(home, "cache"),
+		// Inherited from os.Environ() otherwise, which would write the subprocess's
+		// log into the developer's real ~/.local/state.
+		"XDG_STATE_HOME="+filepath.Join(home, "state"),
 	)
 	run := func(args ...string) (string, error) {
 		// #nosec G204 -- launches the freshly built test binary with controlled args

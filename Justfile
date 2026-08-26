@@ -50,6 +50,10 @@ release-publish:
 precommit:
     @command -v prek >/dev/null 2>&1 && prek run --all-files || pre-commit run --all-files
 
+# Regenerate THIRD_PARTY_NOTICES.md (required by the BSD-3/Apache-2.0 deps)
+notices:
+    ./scripts/gen-notices.sh
+
 # Update Go modules
 tidy:
     go mod tidy

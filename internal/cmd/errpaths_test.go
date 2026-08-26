@@ -18,12 +18,18 @@ func blockedPath(t *testing.T) string {
 	return filepath.Join(f, "child")
 }
 
-// fileHome points HOME at a regular file so applyConfigDefaults can't create ~/.state.
+// fileHome points HOME at a regular file so applyConfigDefaults can't create its
+// state directory.
+//
+// XDG_STATE_HOME is cleared too. It takes precedence over HOME, so a value
+// inherited from the developer's environment both defeated this fault injection
+// and pointed the test's MkdirAll at the real ~/.local/state.
 func fileHome(t *testing.T) {
 	t.Helper()
 	h := filepath.Join(t.TempDir(), "home")
 	require.NoError(t, os.WriteFile(h, []byte("x"), 0o600))
 	t.Setenv("HOME", h)
+	t.Setenv("XDG_STATE_HOME", "")
 }
 
 func TestInitConfigPaths_ConfigMkdirError(t *testing.T) {
