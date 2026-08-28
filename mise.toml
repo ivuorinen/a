@@ -55,7 +55,7 @@ just = "1.58.0"
 # still expects "goreleaser/goreleaser/.github/workflows/release.yml". Bumping to
 # 2.18.0 errors at install; `ubi:goreleaser/goreleaser` installs it but skips
 # attestation verification, which is not worth trading for one minor version.
-goreleaser = "2.17.0"
+goreleaser = "2.18.0"
 # `just precommit` prefers prek and falls back to pre-commit; pinning prek here
 # means the fallback is never needed.
 prek = "0.4.14"
