@@ -86,43 +86,43 @@ url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_
 url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623232"
 
 [[tools.checkov]]
-version = "3.3.13"
+version = "3.3.15"
 backend = "aqua:bridgecrewio/checkov"
 
 [tools.checkov."platforms.linux-arm64"]
-checksum = "sha256:54cb307b6cb608dc92c70e4c685c3b67b4c1e4ab53480aa751263972929e135f"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.13/checkov_linux_arm64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/522912818"
+checksum = "sha256:7fe9481bff90731f1cec68a1ab37f4f95fb822a970ca4f5094ed52cb0fe4fb8e"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.15/checkov_linux_arm64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/532982095"
 
 [tools.checkov."platforms.linux-arm64-musl"]
-checksum = "sha256:54cb307b6cb608dc92c70e4c685c3b67b4c1e4ab53480aa751263972929e135f"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.13/checkov_linux_arm64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/522912818"
+checksum = "sha256:7fe9481bff90731f1cec68a1ab37f4f95fb822a970ca4f5094ed52cb0fe4fb8e"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.15/checkov_linux_arm64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/532982095"
 
 [tools.checkov."platforms.linux-x64"]
-checksum = "sha256:1901428ef96baf8a3dcb698b2d32ba3a4b8072f4754912d7769ae1bc6cbed628"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.13/checkov_linux_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/522911859"
+checksum = "sha256:c1cc66e0e2d147fb8b0a0c23bd6744e6eb2516ce348ab3160a7cd87b272ec998"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.15/checkov_linux_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/531505389"
 
 [tools.checkov."platforms.linux-x64-musl"]
-checksum = "sha256:1901428ef96baf8a3dcb698b2d32ba3a4b8072f4754912d7769ae1bc6cbed628"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.13/checkov_linux_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/522911859"
+checksum = "sha256:c1cc66e0e2d147fb8b0a0c23bd6744e6eb2516ce348ab3160a7cd87b272ec998"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.15/checkov_linux_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/531505389"
 
 [tools.checkov."platforms.macos-arm64"]
-checksum = "sha256:85dc1d4d4f476bd35b753486fa57affa25ee7b9df17f3704db8f99523d24997c"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.13/checkov_darwin_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/522911689"
+checksum = "sha256:9e1f0c27294acbf4b010801889179520b9cfdff8a0ea1fb943665b3d983ddb68"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.15/checkov_darwin_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/531505855"
 
 [tools.checkov."platforms.macos-x64"]
-checksum = "sha256:85dc1d4d4f476bd35b753486fa57affa25ee7b9df17f3704db8f99523d24997c"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.13/checkov_darwin_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/522911689"
+checksum = "sha256:9e1f0c27294acbf4b010801889179520b9cfdff8a0ea1fb943665b3d983ddb68"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.15/checkov_darwin_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/531505855"
 
 [tools.checkov."platforms.windows-x64"]
-checksum = "sha256:496f14329adbc61961b1eb37b7803d0d451b5f05888bf59502a9821d5ad5d1e4"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.13/checkov_windows_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/522915401"
+checksum = "sha256:efea79c8602936182d7dfcf1ff37a0c8eec153b6631e3294b415297a649d3bfc"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.15/checkov_windows_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/531506928"
 
 [[tools.cosign]]
 version = "2.6.5"
