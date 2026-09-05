@@ -73,7 +73,7 @@ repos:
         args: ["-shellcheck="]
 
   - repo: https://github.com/bridgecrewio/checkov.git
-    rev: "3.3.15"
+    rev: "3.3.16"
     hooks:
       - id: checkov
         # Upstream gates this hook on `files: \.tf$`; with no Terraform in this
