@@ -24,7 +24,7 @@ go = "1.27.0"
 # Matches the version pinned in .github/workflows/test.yml's golangci-lint-action.
 # Its .golangci.yml enables 27 linters, gosec and staticcheck among them, so the
 # two standalone entries below are for running a single analyzer directly.
-golangci-lint = "2.13.1"
+golangci-lint = "2.13.2"
 staticcheck = "2026.2.1"
 # github: rather than aqua: -- both resolve to a byte-identical binary, but the
 # github backend verifies the release's GitHub artifact attestations, where aqua
