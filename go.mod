@@ -2,7 +2,7 @@ module github.com/ivuorinen/a
 
 go 1.25.0
 
-toolchain go1.27.0
+toolchain go1.27.1
 
 require (
 	filippo.io/age v1.3.1
