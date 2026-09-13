@@ -4,7 +4,6 @@ name: Stale
 on:
   schedule:
     - cron: '0 8 * * *' # Every day at 08:00
-  workflow_call:
   workflow_dispatch:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
