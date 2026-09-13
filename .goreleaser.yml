@@ -12,7 +12,6 @@ project_name: a
 before:
   hooks:
     - go mod tidy
-    - go generate ./...
 
 # Build configuration
 builds:
@@ -118,11 +117,41 @@ release:
     owner: ivuorinen
     name: a
 
-  # Release notes
+  # Release notes.
+  #
+  # These are hardening fixes, not API breaks: each replaces a path that lost
+  # data or failed open, and the one importable-surface change (cmd ->
+  # internal/cmd) had no consumers — this is a CLI with no documented Go API.
+  # They are listed here rather than left to the grouped changelog because the
+  # commits that made them (28f8e35) are typed `refactor:`, so `changelog.groups`
+  # files them under "♻️ Refactoring", and two of them need the reader to do
+  # something on upgrade. Drop this block once it has shipped in a release.
   header: |
     ## a v{{ .Version }} ({{ .Date }})
 
     A robust command-line interface (CLI) wrapper around the age encryption tool
+
+    ### Behaviour changes since v1.0.0
+
+    Hardening fixes, each replacing a path that lost data or failed open. Two
+    need action on upgrade:
+
+    - `encrypt` and `decrypt` refuse to replace an existing output file, which
+      previously destroyed the old ciphertext or reverted a newer plaintext
+      silently, with exit 0. Pass `-f` / `--force` where that was intended.
+    - A config file that is group- or other-accessible is refused, and `a`
+      prints the `chmod` to apply. Existing configs may need it once.
+
+    The rest need nothing:
+
+    - An argument a command cannot place is now an error. `a encrypt -i file user`
+      previously ignored `user` and exited 0, producing a file the requested
+      recipient could not open.
+    - A GitHub user whose keys cannot be fetched is an error rather than a
+      warning, instead of encrypting without the requested recipient.
+    - The default log path follows `$XDG_STATE_HOME` instead of `~/.state`,
+      which no specification defines.
+    - The `cmd` package moved to `internal/cmd`.
 
   footer: |
     ## Installation
@@ -218,7 +247,3 @@ dockers_v2:
       org.opencontainers.image.revision: "{{ .FullCommit }}"
       org.opencontainers.image.version: "{{ .Version }}"
       org.opencontainers.image.source: "{{ .GitURL }}"
-
-# Announce releases
-announce:
-  skip: false
