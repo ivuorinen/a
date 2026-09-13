@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 // configKeys lists the settable configuration keys (their YAML names), used in
@@ -88,8 +87,10 @@ func ConfigCmd(cfg *Config, saveConfig func(*Config) error) *cobra.Command {
 	return cmd
 }
 
-// setConfigKey sets one configuration field by its YAML key name. An empty value
-// resets the field to its zero value (used by `rem`).
+// setConfigKey sets one configuration field by its YAML key name. An empty
+// value resets the field to its default, which is the zero value for every key
+// except cache_ttl_minutes: 0 there means "caching disabled" (see
+// fetchGitHubKeys), so `rem` returns it to defaultCacheTTLMinutes instead.
 func setConfigKey(cfg *Config, key, value string) error {
 	switch key {
 	case "ssh_key_path":
@@ -112,14 +113,17 @@ func setConfigKey(cfg *Config, key, value string) error {
 		cfg.DefaultRecipients = recipients
 	case "cache_ttl_minutes":
 		if value == "" {
-			// `rem` resets to the documented default; an explicit `set ... 0`
-			// still disables caching (see fetchGitHubKeys).
 			cfg.CacheTTLMinutes = defaultCacheTTLMinutes
 			break
 		}
 		n, err := strconv.Atoi(value)
 		if err != nil {
 			return fmt.Errorf("cache_ttl_minutes must be an integer: %w", err)
+		}
+		if n > maxCacheTTLMinutes {
+			return fmt.Errorf(
+				"cache_ttl_minutes must be at most %d (about 292 years); larger values overflow "+
+					"the duration and disable caching instead of extending it", maxCacheTTLMinutes)
 		}
 		cfg.CacheTTLMinutes = n
 	default:
@@ -130,7 +134,7 @@ func setConfigKey(cfg *Config, key, value string) error {
 
 // formatConfig renders the config as YAML for display.
 func formatConfig(cfg *Config) string {
-	data, err := yaml.Marshal(cfg)
+	data, err := yamlMarshal(cfg)
 	if err != nil {
 		return fmt.Sprintf("error rendering config: %v\n", err)
 	}

@@ -3,17 +3,87 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
 
 // defaultCacheTTLMinutes is the GitHub-key cache lifetime written to a freshly
-// bootstrapped config. It matches the --cache-ttl flag default.
+// bootstrapped config, and the value `a config rem cache_ttl_minutes` restores.
+// There is no flag for it: the TTL is config-file only, so this constant is its
+// single declaration.
 const defaultCacheTTLMinutes = 120
+
+// maxCacheTTLMinutes is the largest cache_ttl_minutes that survives conversion
+// to a time.Duration, which counts int64 nanoseconds.
+//
+// Past this the multiplication in readKeyCache wraps, and not gracefully: the
+// result is non-monotonic, so 200000000 minutes yields a negative duration that
+// disables the cache while the larger 999999999 yields a positive ~147 years.
+// An operator raising the TTL therefore gets the opposite of what they asked
+// for, silently. Derived rather than written out so it cannot drift.
+const maxCacheTTLMinutes = int(math.MaxInt64 / int64(time.Minute))
+
+// yamlMarshal wraps yaml.Marshal so its failure is reachable from a test.
+//
+// yaml.Marshal cannot actually fail for Config: every field is a string,
+// []string or int, and none of those can error. The error branches in SaveConfig
+// and formatConfig are therefore dead as written — they exist because ignoring
+// the return of a function that returns an error is worse, not because the
+// failure can happen. This seam is what lets those branches be exercised instead
+// of merely asserted to be unreachable.
+var yamlMarshal = yaml.Marshal
+
+// tempFile is the subset of *os.File that the atomic-write helpers use.
+//
+// SaveConfig, encryptFile and tryDecrypt all write to a temp file and rename it
+// over the target, and each guards the Write and Close along the way. Those
+// guards exist for a full disk or an I/O error mid-write, neither of which can
+// be provoked against a real file in a temp directory — so without this
+// interface those branches cannot be tested at all.
+type tempFile interface {
+	io.Writer
+	Close() error
+	Name() string
+}
+
+// createTemp wraps os.CreateTemp, which creates the file with 0600. It is a
+// package variable so tests can substitute a file whose Write or Close fails;
+// see tempFile.
+//
+// The explicit nil on the error path matters: returning os.CreateTemp's results
+// directly would wrap a nil *os.File in a non-nil tempFile, and every `tmp ==
+// nil` check downstream would silently stop working.
+var createTemp = func(dir, pattern string) (tempFile, error) {
+	f, err := os.CreateTemp(dir, pattern)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+// userConfigDir resolves the base configuration directory for goos.
+//
+// Parameterized on goos rather than reading runtime.GOOS directly so the darwin
+// branch is reachable from a test on any platform; the sole caller passes
+// runtime.GOOS.
+func userConfigDir(goos string) (string, error) {
+	// Personal preference, I don't like the "$HOME/Library/Application Support/" path
+	if goos == "darwin" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("resolving home directory for the config path: %w", err)
+		}
+		return filepath.Join(home, ".config"), nil
+	}
+	return os.UserConfigDir()
+}
 
 // Config represents the application's YAML configuration.
 type Config struct {
@@ -36,33 +106,19 @@ type ConfigPaths struct {
 
 // InitConfigPaths initializes configuration and cache directories and returns their paths.
 func InitConfigPaths() (ConfigPaths, error) {
-	var configDir string
-	var err error
-
-	// Personal preference, I don't like the "$HOME/Library/Application Support/" path
-	if runtime.GOOS == "darwin" {
-		home, homeErr := os.UserHomeDir()
-		if homeErr != nil {
-			return ConfigPaths{}, fmt.Errorf("resolving home directory for the config path: %w", homeErr)
-		}
-		configDir = filepath.Join(home, ".config")
-	} else {
-		configDir, err = os.UserConfigDir()
-		if err != nil {
-			return ConfigPaths{}, err
-		}
+	configDir, err := userConfigDir(runtime.GOOS)
+	if err != nil {
+		return ConfigPaths{}, err
 	}
 
 	cfgDir := filepath.Join(configDir, "a")
 	cfgFile := filepath.Join(cfgDir, "config.yaml")
-	// #nosec G703 -- cfgDir is derived from os.UserConfigDir/HOME plus a constant, not user input
 	if err := os.MkdirAll(cfgDir, 0o700); err != nil {
 		return ConfigPaths{}, err
 	}
 
 	// Materialize a default config on first run so the `config` command (and any
 	// other command whose PreRun loads config) can bootstrap without a manual step.
-	// #nosec G703 -- cfgFile is derived from os.UserConfigDir/HOME plus constants, not user input
 	if _, err := os.Stat(cfgFile); errors.Is(err, os.ErrNotExist) {
 		if err := SaveConfig(cfgFile, &Config{CacheTTLMinutes: defaultCacheTTLMinutes}); err != nil {
 			return ConfigPaths{}, err
@@ -162,22 +218,25 @@ func applyConfigDefaults(cfg *Config) error {
 // SaveConfig saves configuration to the YAML file.
 //
 // It writes to a temp file (created 0600) in the config directory and renames it
-// over cfgFile, so an interrupted or disk-full write cannot truncate or lose the
-// existing config, and the result is always 0600 (which LoadConfig requires).
+// over cfgFile, so a failed or interrupted write cannot truncate the existing
+// config, and the result is always 0600 (which LoadConfig requires).
+//
+// The rename is not fsynced, so the guarantee stops at process death: a host
+// crash inside the writeback window can still leave a zero-length config, which
+// LoadConfig reads as an empty one rather than an error. Add tmp.Sync() before
+// the Close below if that ever needs to hold.
 func SaveConfig(cfgFile string, cfg *Config) (err error) {
-	data, err := yaml.Marshal(cfg)
+	data, err := yamlMarshal(cfg)
 	if err != nil {
 		return err
 	}
-	// #nosec G304 -- cfgFile is supplied by InitConfigPaths (os.UserConfigDir-derived), not user input
-	tmp, err := os.CreateTemp(filepath.Dir(cfgFile), ".config-*.yaml")
+	tmp, err := createTemp(filepath.Dir(cfgFile), ".config-*.yaml")
 	if err != nil {
 		return err
 	}
 	tmpName := tmp.Name()
 	defer func() {
 		if err != nil {
-			// #nosec G703 -- tmpName is CreateTemp's own path under the trusted config dir
 			_ = os.Remove(tmpName)
 		}
 	}()
@@ -188,7 +247,6 @@ func SaveConfig(cfgFile string, cfg *Config) (err error) {
 	if err = tmp.Close(); err != nil {
 		return err
 	}
-	// #nosec G703 -- tmpName and cfgFile are both InitConfigPaths-derived, not user input
 	return os.Rename(tmpName, cfgFile)
 }
 

@@ -35,11 +35,25 @@ func buildVersion() string {
 	if version != "" {
 		return version
 	}
-	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+	// The `!= "(devel)"` term cannot change the result today: it filters exactly
+	// the value the fallback below returns anyway, so dropping it is a mutation
+	// no test can catch. It stays because it states the intent — build info
+	// reporting "(devel)" is not a version, it is the absence of one — and that
+	// stops mattering only for as long as the fallback happens to be the same
+	// string. Change the fallback and the term starts carrying weight.
+	if info, ok := readBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		return info.Main.Version
 	}
 	return "(devel)"
 }
+
+// readBuildInfo wraps debug.ReadBuildInfo. It is a package variable because the
+// three conditions above cannot all be exercised from a test otherwise: inside
+// `go test` the build info always reports Main.Version as "(devel)", so the
+// branch that returns a real release version, and the one where the info is
+// unavailable at all, are both unreachable. Those are the branches that decide
+// what `a --version` prints in bug reports, and the logic has broken once.
+var readBuildInfo = debug.ReadBuildInfo
 
 var (
 	log      = slog.New(slog.NewJSONHandler(os.Stderr, nil))
@@ -79,6 +93,31 @@ func saveConfig(cfg *cmd.Config) error {
 	return cmd.SaveConfig(cfgFile, cfg)
 }
 
+// maxLogBytes is the size past which setupLogging rolls the log to <path>.1.
+const maxLogBytes = 5 << 20
+
+// rollLog renames the log to <path>.1 once it exceeds maxLogBytes, so the file
+// stays bounded.
+//
+// slog appends forever, and every command writes at least one record naming the
+// input path, the output path and the recipients — so this file is a cleartext
+// index of everything the user encrypted, and unbounded growth is also
+// unbounded retention, in a tool whose whole job is confidentiality. One
+// previous generation is kept, so a roll can never destroy the record of the
+// run that triggered it.
+//
+// Every failure is ignored on purpose: logging is not a security control here
+// (see setupLogging), and a roll that cannot happen must not stop the command
+// that was trying to log.
+func rollLog(path string) {
+	if path == "" {
+		return
+	}
+	if info, err := os.Stat(path); err == nil && info.Size() > maxLogBytes {
+		_ = os.Rename(path, path+".1")
+	}
+}
+
 // setupLogging configures JSON logging to the configured log file, falling back
 // to stderr if the file cannot be opened.
 //
@@ -96,6 +135,8 @@ func setupLogging(verbose bool) {
 	}
 	opts := &slog.HandlerOptions{Level: level}
 
+	rollLog(cfg.LogFilePath)
+
 	logFile, err := os.OpenFile(cfg.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		// Mutate the shared logger in place (rather than reassigning the pointer)
@@ -108,7 +149,13 @@ func setupLogging(verbose bool) {
 	*log = *slog.New(slog.NewJSONHandler(logFile, opts))
 }
 
-func main() {
+// newRootCmd builds the root command with its persistent flag and subcommands.
+//
+// Split out of main so the wiring, and PersistentPreRunE's two error returns,
+// can be driven in-process. Left inside main they were reachable only by
+// building the binary and running it, which no coverage or condition analysis
+// of this package can see.
+func newRootCmd() *cobra.Command {
 	var verbose bool
 
 	rootCmd := &cobra.Command{
@@ -143,9 +190,20 @@ func main() {
 		cmd.Completion(rootCmd),
 	)
 
-	// Execute the root command
-	if err := rootCmd.Execute(); err != nil {
-		log.Error("Command execution failed", "error", err)
-		os.Exit(1)
-	}
+	return rootCmd
 }
+
+// run executes the root command and reports the process exit status.
+//
+// Returning the status rather than calling os.Exit is what keeps both outcomes
+// testable: os.Exit terminates the test binary, so a main that called it
+// directly could only ever be checked from a subprocess.
+func run() int {
+	if err := newRootCmd().Execute(); err != nil {
+		log.Error("Command execution failed", "error", err)
+		return 1
+	}
+	return 0
+}
+
+func main() { os.Exit(run()) }
