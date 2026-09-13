@@ -1,10 +1,14 @@
 ---
 # yamlfmt configuration file
 # Schema: https://raw.githubusercontent.com/google/yamlfmt/main/schema.json
+# Top level, not under formatter:. yamlfmt takes path-collection settings here
+# and silently accepts unknown keys inside formatter:, so nested this did
+# nothing and `just format` rewrote gitignored build output under dist/.
+gitignore_excludes: true
+
 formatter:
   type: basic
   include_document_start: true
-  gitignore_excludes: true
   retain_line_breaks_single: true
   eof_newline: true
   max_line_length: 120
