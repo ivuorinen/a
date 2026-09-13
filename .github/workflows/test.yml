@@ -55,5 +55,39 @@ jobs:
             exit 1
           fi
 
+      - name: Assert the runner provides ssh-keygen
+        # The key-generating tests call t.Skip when it is missing, and Go reports
+        # a skipped test as `ok` -- so losing it would silently void every
+        # passphrase-protected-key test plus TestCLIIntegration, the only thing
+        # that covers main(), behind a green run.
+        run: command -v ssh-keygen
+
       - name: Run tests
         run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Check dependencies for known vulnerabilities
+        # golangci-lint's gosec audits this repo's source; nothing audited the
+        # modules it links, so x/crypto sat two minors behind two fixed ssh
+        # advisories unnoticed. Version matches mise.toml, so `just vuln` and
+        # this step are the same check.
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+
+      - name: Check every condition is evaluated both ways
+        # `go test -cover` counts statements, so a compound condition is marked
+        # covered by a single evaluation and an `if` with no `else` has no block
+        # for its false path. The suite hit 100% statement coverage with two
+        # conditions still never observed both ways. The script wraps gobco
+        # because gobco exits 0 even when it reports gaps.
+        run: ./scripts/check-conditions.sh
+
+      - name: Cross-compile every released target
+        # .goreleaser.yml builds 5 GOOS x 4 GOARCH, but the job above only ever
+        # compiles linux/amd64. Without this, a pushed v*.*.* tag is the first
+        # build of any other target and a failure lands after the tag is public,
+        # in a job holding contents:write. Build only; the tests stay on linux.
+        run: |
+          for target in darwin/amd64 darwin/arm64 freebsd/amd64 openbsd/amd64 \
+                        netbsd/amd64 linux/arm64 linux/arm linux/386; do
+            GOOS=${target%/*} GOARCH=${target#*/} go build -o /dev/null ./... \
+              || { echo "::error::build failed for $target"; exit 1; }
+          done

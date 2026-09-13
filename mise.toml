@@ -13,8 +13,10 @@
 
 # --- language toolchain -------------------------------------------------------
 # Must match the `toolchain` line in go.mod -- not the `go` directive, which is
-# the *minimum* language version the code builds against (1.25.0, the floor the
-# golang.org/x deps set). CI resolves the same toolchain via go-version-file.
+# the *minimum* language version the code builds against (1.26.0, the floor the
+# golang.org/x deps set -- x/crypto, x/sys and x/term all declare `go 1.26.0`
+# from v0.56.0 on, so the advisory fix in that release moved the floor with it).
+# CI resolves the same toolchain via go-version-file.
 # A Go newer than the analyzers below can break them: a linter built with an
 # older Go refuses a module targeting a newer one ("the Go language version used
 # to build golangci-lint is lower than the targeted Go version").
@@ -32,6 +34,12 @@ staticcheck = "2026.2.1"
 "github:securego/gosec" = "v2.29.0"
 # No aqua/registry entry, so this builds from source with the Go pinned above.
 "go:golang.org/x/vuln/cmd/govulncheck" = "1.7.0"
+# Branch and condition coverage, which `go test -cover` does not measure: it
+# counts statements, so `a && b` is covered by one evaluation and an `if` with no
+# `else` has no block for its false path. Must match GOBCO_VERSION in
+# scripts/check-conditions.sh, which falls back to `go run` at that version when
+# this binary is not on PATH.
+"go:github.com/rillig/gobco" = "1.3.4"
 
 # --- formatters and linters the Justfile calls directly ------------------------
 # These versions match the corresponding `rev` in .pre-commit-config.yaml, so
@@ -50,11 +58,6 @@ checkov = "3.3.16"                # pre-commit rev 3.3.13
 # --- build, release, and hooks -------------------------------------------------
 just = "1.58.0"
 # release.yml pins the action to "~> v2", so any v2 is acceptable.
-# Held at 2.17.0 deliberately: 2.18.0 fails mise's provenance check, because
-# upstream now signs releases as "https://dotcom.releases.github.com" while aqua
-# still expects "goreleaser/goreleaser/.github/workflows/release.yml". Bumping to
-# 2.18.0 errors at install; `ubi:goreleaser/goreleaser` installs it but skips
-# attestation verification, which is not worth trading for one minor version.
 goreleaser = "2.18.1"
 # `just precommit` prefers prek and falls back to pre-commit; pinning prek here
 # means the fallback is never needed.

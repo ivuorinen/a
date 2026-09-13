@@ -50,6 +50,57 @@ func TestFetchGitHubKeys_NotFound(t *testing.T) {
 	assert.Nil(t, fetchGitHubKeys(&Config{}, "missing", discardLogger()))
 }
 
+// TestFetchGitHubKeys_EmptyBodyIsNotCached pins the fix for a stuck-cache bug:
+// GitHub answers 200 with an empty body for an account that exists but has
+// published no keys, and readKeyCache reads an empty cache file back as a valid
+// hit — so caching it pinned "no public keys found" for the whole TTL, with no
+// network request, long after the recipient uploaded a key.
+func TestFetchGitHubKeys_EmptyBodyIsNotCached(t *testing.T) {
+	calls := 0
+	withGitHubKeysServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		if calls > 1 {
+			_, _ = fmt.Fprintln(w, "ssh-ed25519 UPLOADED")
+		}
+	})
+	dir := t.TempDir()
+	cfg := &Config{CacheDir: dir, CacheTTLMinutes: 120}
+
+	assert.Nil(t, fetchGitHubKeys(cfg, "user", discardLogger()),
+		"an account with no published keys yields none")
+	assert.NoFileExists(t, filepath.Join(dir, "user.keys"),
+		"an empty response must not be cached")
+	assert.Equal(t, []string{"ssh-ed25519 UPLOADED"},
+		fetchGitHubKeys(cfg, "user", discardLogger()),
+		"a key uploaded after the empty response must be visible immediately")
+}
+
+// An unset cache directory must disable caching, not resolve to a relative path.
+//
+// cachePath is filepath.Join(cfg.CacheDir, ghUser+".keys"); with CacheDir empty
+// that yields the bare "octocat.keys", so the cache would be read from and
+// written into whatever directory the process happens to be in. Only the
+// CacheDir != "" half of the guard prevents it, and a TTL-only test cannot see
+// that half.
+func TestFetchGitHubKeys_NoCacheDirDoesNotWriteToCwd(t *testing.T) {
+	calls := 0
+	withGitHubKeysServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		calls++
+		_, _ = fmt.Fprintln(w, "ssh-ed25519 NODIR")
+	})
+	wd := t.TempDir()
+	t.Chdir(wd)
+
+	cfg := &Config{CacheDir: "", CacheTTLMinutes: 60} // TTL is positive; only CacheDir is missing
+	assert.Equal(t, []string{"ssh-ed25519 NODIR"}, fetchGitHubKeys(cfg, "octocat", discardLogger()))
+	assert.Equal(t, []string{"ssh-ed25519 NODIR"}, fetchGitHubKeys(cfg, "octocat", discardLogger()))
+
+	assert.Equal(t, 2, calls, "with no cache directory every call must hit the network")
+	entries, err := os.ReadDir(wd)
+	require.NoError(t, err)
+	assert.Empty(t, entries, "no cache file may be written into the working directory")
+}
+
 func TestFetchGitHubKeys_ConnError(t *testing.T) {
 	orig := githubKeysURL
 	githubKeysURL = func(user string) string { return "http://127.0.0.1:0/" + user + ".keys" }
@@ -191,6 +242,31 @@ func TestEncryptCmd_GitHubUserPositionalWithInputFlag(t *testing.T) {
 	require.Error(t, err, "the positional github-user must not be discarded")
 	assert.ErrorContains(t, err, "no public keys found")
 	assert.NoFileExists(t, in+".age", "no output without the requested recipient")
+}
+
+// A failure inside encryptFile must surface as a command error. Without this,
+// dropping that branch makes `a encrypt` log "Encryption successful" and exit 0
+// having written nothing -- the user deletes the plaintext and has neither copy.
+// Every other RunE test fails earlier, in validation or recipient parsing, so
+// nothing reached the encryptFile error path through the command.
+func TestEncryptCmd_EncryptFileFailureSurfaces(t *testing.T) {
+	dir := t.TempDir()
+	in := filepath.Join(dir, "msg.txt")
+	require.NoError(t, os.WriteFile(in, []byte("plaintext"), 0o600))
+	_, pub := makeSSHKey(t, dir)
+
+	// Recipients parse and validation passes; only the write fails.
+	locked := readOnlyDir(t)
+	out := filepath.Join(locked, "out.age")
+
+	c := Encrypt(&Config{DefaultRecipients: []string{pub}}, discardLogger())
+	require.NoError(t, c.Flags().Set("input", in))
+	require.NoError(t, c.Flags().Set("output", out))
+
+	err := c.RunE(c, nil)
+	require.Error(t, err, "a failed encryption must not exit 0")
+	assert.ErrorContains(t, err, "encryption failed")
+	assert.NoFileExists(t, out, "nothing may be left at the output path")
 }
 
 // An argument the command cannot place must stop the run rather than be dropped.

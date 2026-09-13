@@ -38,9 +38,14 @@
 Session.vim
 Sessionx.vim
 [._]*.un~
-coverage*
-dist/
+# Leading slash on every build artifact below: unanchored, these match at any
+# depth. `coverage*` silently swallowed internal/cmd/coverage_test.go, so a
+# clone of the committed tree failed to build; `a` would do the same to any
+# future file or package directory named `a`.
+/.coverdata
+/coverage*
+/dist/
 logs
 out/
 tags
-a
+/a

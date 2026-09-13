@@ -40,7 +40,7 @@ would leave `.config`, `.cache`, and `.local` in your working directory.
 Config is therefore not persisted between container runs. To keep it, mount a
 directory for it and set `-e XDG_CONFIG_HOME=/config`.
 
-**With Go** (requires Go 1.25+):
+**With Go** (requires Go 1.26+):
 
 ```bash
 go install github.com/ivuorinen/a@latest
@@ -92,7 +92,8 @@ grep a_<version>_darwin_arm64.tar.gz checksums.txt | shasum -a 256 -c -
 
 Add `-v` for verbose (debug) logging, and `--version` to print the build version
 (quote it in bug reports). The long flag form still works:
-`encrypt -i in -o out -r key.pub`, `decrypt -i in -o out --ssh-key key`.
+`encrypt -i in -o out -r key.pub --github-user octocat`,
+`decrypt -i in -o out --ssh-key key`.
 
 `encrypt` and `decrypt` refuse to replace an existing output file; pass `-f` /
 `--force` to overwrite. Naming a GitHub user whose keys cannot be fetched is an
@@ -132,12 +133,13 @@ run and print the `chmod` to apply.
 | `ssh_key_path` | Private key used for decryption; if empty, `~/.ssh/id_*` keys are tried in turn |
 | `github_user` | Default GitHub user whose published keys are added as recipients |
 | `default_recipients` | Public-key files or key strings always added as recipients |
-| `cache_ttl_minutes` | Lifetime of cached GitHub keys; `0` disables caching |
-| `log_file_path` | JSON log file; defaults to `$XDG_STATE_HOME/a/cli.log` (`~/.local/state/a/cli.log`) |
+| `cache_ttl_minutes` | Lifetime of cached GitHub keys, in minutes. Default `120`, which `a config rem cache_ttl_minutes` restores; zero or negative disables caching entirely |
+| `log_file_path` | JSON log of every encrypt and decrypt, including file paths and recipients. Defaults to `$XDG_STATE_HOME/a/cli.log` (`~/.local/state/a/cli.log`), mode `0600`, rolled to `cli.log.1` past 5 MiB. Point it at `/dev/null` to keep no record |
 
 Fetched GitHub keys are cached (mode `0600`) in the user cache dir
-(`~/.cache/a/<user>.keys` on Linux) for `cache_ttl_minutes`, avoiding a network
-request on every encryption.
+(`~/.cache/a/<user>.keys` on Linux, under `$XDG_CACHE_HOME/a/` if that is set)
+for `cache_ttl_minutes`, avoiding a network request on every encryption. Delete
+the file to force a refresh before the TTL expires.
 
 ## Development
 

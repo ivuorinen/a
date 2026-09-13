@@ -104,7 +104,8 @@ func TestParseRecipients_Invalid(t *testing.T) {
 	assert.ErrorContains(t, err, "empty recipient")
 
 	_, err = parseRecipients([]string{"garbage-not-a-key"})
-	assert.Error(t, err, "unparseable recipient should error")
+	assert.ErrorContains(t, err, `invalid recipient "garbage-not-a-key"`,
+		"the rejected recipient must be named, or the user cannot tell which one failed")
 }
 
 // An empty recipient from config must surface parseRecipients's error through Encrypt's RunE.

@@ -20,13 +20,23 @@ import (
 // variable so tests can supply one without a terminal: under `go test` stdin is
 // never a tty, so a hardcoded prompt makes the entire successful-decryption path
 // for passphrase-protected keys unreachable by any test.
+// termIsTerminal and termReadPassword wrap the x/term calls passphrasePrompt
+// makes. They are package variables so the prompt's body is reachable under
+// `go test`, where stdin is never a tty: otherwise the function returns at the
+// IsTerminal guard and the read, its error wrap, and the success path can be
+// exercised only by allocating a pty.
+var (
+	termIsTerminal   = term.IsTerminal
+	termReadPassword = term.ReadPassword
+)
+
 var passphrasePrompt = func(keyPath string) ([]byte, error) {
 	fd := int(os.Stdin.Fd())
-	if !term.IsTerminal(fd) {
+	if !termIsTerminal(fd) {
 		return nil, fmt.Errorf("key is passphrase protected and stdin is not a terminal")
 	}
 	fmt.Fprintf(os.Stderr, "Enter passphrase for %q: ", keyPath)
-	pass, err := term.ReadPassword(fd)
+	pass, err := termReadPassword(fd)
 	fmt.Fprintln(os.Stderr)
 	if err != nil {
 		return nil, fmt.Errorf("could not read passphrase for %q: %w", keyPath, err)
@@ -108,9 +118,9 @@ func tryDecrypt(keyPath, output, input string) (err error) {
 		return err // wrong key or not an age file
 	}
 
-	// os.CreateTemp creates the file with 0600; the plaintext is never readable
-	// by group/other, even transiently.
-	tmp, err := os.CreateTemp(filepath.Dir(output), ".a-decrypt-*")
+	// createTemp wraps os.CreateTemp, which creates the file with 0600; the
+	// plaintext is never readable by group/other, even transiently.
+	tmp, err := createTemp(filepath.Dir(output), ".a-decrypt-*")
 	if err != nil {
 		return fmt.Errorf("creating temp output: %w", err)
 	}

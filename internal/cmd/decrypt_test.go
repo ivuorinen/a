@@ -53,9 +53,53 @@ func TestTryDecrypt_FailureLeavesNoPlaintext(t *testing.T) {
 }
 
 func TestTryDecrypt_EmptyPath(t *testing.T) {
-	assert.Error(t, tryDecrypt("", "o.txt", "i"))
-	assert.Error(t, tryDecrypt("k", "", "i"))
-	assert.Error(t, tryDecrypt("k", "o.txt", ""))
+	// ErrorContains, not Error: with the guard deleted all three still fail --
+	// on os.ReadFile -- so a bare Error assertion passes against a tryDecrypt
+	// that no longer has the guard at all.
+	const want = "empty path"
+	assert.ErrorContains(t, tryDecrypt("", "o.txt", "i"), want, "empty key path")
+	assert.ErrorContains(t, tryDecrypt("k", "", "i"), want, "empty output path")
+	assert.ErrorContains(t, tryDecrypt("k", "o.txt", ""), want, "empty input path")
+}
+
+// The mirror of TestEncryptCmd_RefusesExistingOutput, which decrypt lacked.
+// decrypt derives its output path, so the destructive case is the common one:
+// `a d notes.txt.age` targets a notes.txt the user may have edited since, and
+// tryDecrypt finishes with os.Rename, which replaces unconditionally.
+func TestDecryptCmd_RefusesExistingOutput(t *testing.T) {
+	dir := t.TempDir()
+	priv, pub := makeSSHKey(t, dir)
+
+	plain := filepath.Join(dir, "notes.txt")
+	require.NoError(t, os.WriteFile(plain, []byte("original"), 0o600))
+	enc := filepath.Join(dir, "notes.txt.age")
+	recips, err := parseRecipients([]string{pub})
+	require.NoError(t, err)
+	require.NoError(t, encryptFile(plain, enc, recips))
+
+	// The user edits the plaintext after encrypting; decrypt must not revert it.
+	require.NoError(t, os.WriteFile(plain, []byte("edited since"), 0o600))
+
+	run := func(force bool) error {
+		c := Decrypt(&Config{SSHKeyPath: priv}, discardLogger())
+		require.NoError(t, c.Flags().Set("input", enc))
+		if force {
+			require.NoError(t, c.Flags().Set("force", "true"))
+		}
+		return c.RunE(c, nil) // output derives to notes.txt
+	}
+
+	err = run(false)
+	require.Error(t, err, "decrypt must refuse to replace an existing output")
+	assert.ErrorContains(t, err, "already exists")
+	got, readErr := os.ReadFile(plain) // #nosec G304 -- test temp path
+	require.NoError(t, readErr)
+	assert.Equal(t, "edited since", string(got), "the newer plaintext must survive")
+
+	require.NoError(t, run(true), "--force must permit replacement")
+	got, readErr = os.ReadFile(plain) // #nosec G304 -- test temp path
+	require.NoError(t, readErr)
+	assert.Equal(t, "original", string(got), "--force restores the decrypted content")
 }
 
 func TestSelectSSHKey(t *testing.T) {
@@ -129,9 +173,16 @@ func TestDecryptCmd_ScanError(t *testing.T) {
 // test failure whose error names nothing about the real cause. The CI test job
 // runs on ubuntu-latest, which ships ssh-keygen, so this skip is a fallback and
 // not the plan — a runner that starts hitting it has silently lost coverage.
+//
+// Hence the CI branch: Go reports a skipped test as `ok`, so under CI the skip
+// would retire every passphrase-protected-key and key-scan test behind a green
+// run. Where the binary is promised, its absence is a failure, not a skip.
 func requireSSHKeygen(t *testing.T) {
 	t.Helper()
 	if _, err := exec.LookPath("ssh-keygen"); err != nil {
+		if os.Getenv("CI") != "" {
+			t.Fatalf("ssh-keygen missing on a CI runner that must provide it: %v", err)
+		}
 		t.Skip("ssh-keygen not available")
 	}
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -214,7 +215,8 @@ func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
 		}
 	}
 
-	// #nosec G107 -- the host is fixed by githubKeysURL and ghUser is regex-validated by the caller
+	// The host is fixed by githubKeysURL and ghUser is regex-validated by the
+	// caller, so the URL is not attacker-steerable.
 	resp, err := keysHTTPClient.Get(githubKeysURL(ghUser))
 	if err != nil {
 		log.Warn("Failed to fetch GitHub keys", "user", ghUser, "error", err)
@@ -234,7 +236,14 @@ func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
 		log.Warn("Failed to read GitHub keys response body", "error", err)
 		return nil
 	}
-	if cachePath != "" {
+	// Only cache a response that carries keys. GitHub answers 200 with an empty
+	// body for an account that exists but has published none (404 is reserved
+	// for an account that does not), and readKeyCache reads an empty file back
+	// as a valid hit -- so caching it pinned "no public keys found for GitHub
+	// user" for the whole TTL, with no network request, long after the
+	// recipient uploaded a key. An empty response costs one request per attempt
+	// instead, which is the right price for a state the user is fixing.
+	if cachePath != "" && len(bytes.TrimSpace(body)) > 0 {
 		writeKeyCache(cachePath, body, log)
 	}
 	return parseKeyLines(string(body))
@@ -258,7 +267,11 @@ func readKeyCache(cachePath string, ttlMinutes int) ([]string, bool) {
 	if err != nil {
 		return nil, false
 	}
-	if time.Since(info.ModTime()) > time.Duration(ttlMinutes)*time.Minute {
+	// Clamped: a value written straight into config.yaml bypasses setConfigKey's
+	// range check, and an unclamped multiplication wraps to a negative duration
+	// that reads as "always stale". A negative ttlMinutes passes through
+	// unchanged, which is the documented way to disable caching.
+	if time.Since(info.ModTime()) > time.Duration(min(ttlMinutes, maxCacheTTLMinutes))*time.Minute {
 		return nil, false
 	}
 	// #nosec G304 -- cachePath is cfg.CacheDir (os.UserCacheDir-derived) joined with a validated GitHub username
@@ -271,7 +284,6 @@ func readKeyCache(cachePath string, ttlMinutes int) ([]string, bool) {
 
 // writeKeyCache stores the raw .keys response; failures are non-fatal (best effort).
 func writeKeyCache(cachePath string, body []byte, log *slog.Logger) {
-	// #nosec G703 -- cachePath is cfg.CacheDir (os.UserCacheDir-derived) joined with a validated GitHub username
 	if err := os.WriteFile(cachePath, body, 0o600); err != nil {
 		log.Warn("Failed to cache GitHub keys", "path", cachePath, "error", err)
 	}
@@ -280,7 +292,7 @@ func writeKeyCache(cachePath string, body []byte, log *slog.Logger) {
 // linesForInput resolves a single parseRecipients entry into candidate lines:
 // the literal string itself, or the lines of a file when the entry names one.
 func linesForInput(in string) ([]string, error) {
-	// #nosec G304 G703 -- recipient path is user-provided by design (config/flags/GitHub)
+	// #nosec G703 -- recipient path is user-provided by design (config/flags/GitHub)
 	if info, statErr := os.Stat(in); statErr == nil && !info.IsDir() {
 		// #nosec G304 G703 -- recipient path is user-provided by design (config/flags/GitHub)
 		data, readErr := os.ReadFile(in)
@@ -346,8 +358,8 @@ func encryptFile(input, output string, recipients []age.Recipient) (err error) {
 	}
 	defer func() { _ = in.Close() }()
 
-	// os.CreateTemp creates the file with 0600.
-	tmp, err := os.CreateTemp(filepath.Dir(output), ".a-encrypt-*")
+	// createTemp wraps os.CreateTemp, which creates the file with 0600.
+	tmp, err := createTemp(filepath.Dir(output), ".a-encrypt-*")
 	if err != nil {
 		return fmt.Errorf("creating temp output: %w", err)
 	}

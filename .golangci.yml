@@ -8,10 +8,12 @@ run:
   timeout: 5m
   modules-download-mode: readonly
   # No `go:` pin -- golangci-lint then reads the version from go.mod, and it is
-  # the `go` directive (1.25.0) that it must match, not the newer `toolchain`
+  # the `go` directive (1.26.0) that it must match, not the newer `toolchain`
   # line: the directive is the language version the compiler applies. A literal
-  # here drifted to 1.26 once already, so the analyzers reasoned about different
-  # language semantics than the compiler.
+  # here drifted once already, so the analyzers reasoned about different
+  # language semantics than the compiler. Leaving it unset is what keeps the two
+  # from diverging again when the directive moves, as it did when x/crypto's
+  # advisory fix raised the floor to 1.26.0.
 
 linters:
   enable:
@@ -32,14 +34,10 @@ linters:
     - gocyclo # Cyclomatic complexity checking
     - prealloc # Preallocation checking
     - bodyclose # Body close checking
-    - rowserrcheck # Rows error checking
-    - sqlclosecheck # SQL close checking
     - durationcheck # Duration checking
     - errorlint # Error linting
     - predeclared # Predeclared identifier checking
     - wastedassign # Wasted assignment checking
-    - containedctx # Contained context checking
-    - contextcheck # Context checking
     - errname # Error name checking
     - nilnil # Nil nil checking
     - thelper # Helper function checking
@@ -47,26 +45,13 @@ linters:
     - whitespace # Whitespace checking
     - godox # TODO/FIXME/etc comments
 
-  disable:
-    # Disable overly strict linters for this project
-    - varnamelen # Variable name length checking
-    - tagliatelle # Struct tag format checking
-    - makezero # Make zero checking
-    - testpackage # Separate test package requirement
-    - paralleltest # Parallel test requirement
-    - forcetypeassert # Force type assertion
-    - ireturn # Return interface checking
-    - nlreturn # New line return checking
-    - cyclop # Cyclomatic complexity (covered by gocyclo)
-    - funlen # Function length checking
-    - gocognit # Cognitive complexity checking
-    - maintidx # Maintainability index
-    - nestif # Nested if checking
-    - wsl # Whitespace linter (too strict)
-    - gocritic # Too many style opinions
-    - nakedret # Naked returns
-    - nolintlint # Nolint directive checking
-    - noctx # Context checking
+  # No `disable:` block. `linters.default` is unset, so the baseline is
+  # `standard` (errcheck, govet, ineffassign, staticcheck, unused) plus the
+  # enable list above -- nothing else is on, so listing linters to disable
+  # subtracted nothing. `golangci-lint linters` printed an empty "Disabled by
+  # your configuration" section against the 19 entries that used to sit here,
+  # which read as 19 deliberate exclusions and were 19 no-ops. The enable list
+  # is the whole answer to "what runs here".
 
   settings:
     errcheck:

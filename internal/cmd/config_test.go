@@ -53,23 +53,48 @@ func TestConfig_Show(t *testing.T) {
 	assert.Contains(t, out, "ssh_key_path: /k")
 }
 
+// Driven off configKeys so a key added without a case fails the completeness
+// check below rather than going untested. Under the previous hand-written form
+// the name promised "each key" and log_file_path had no case at all.
 func TestConfig_SetEachKey(t *testing.T) {
-	cfg := &Config{}
-	_, err := runConfig(t, cfg, "set", "ssh_key_path", "/home/me/id_ed25519")
-	require.NoError(t, err)
-	assert.Equal(t, "/home/me/id_ed25519", cfg.SSHKeyPath)
+	cases := map[string]struct {
+		value string
+		check func(*testing.T, *Config)
+	}{
+		"ssh_key_path": {"/home/me/id_ed25519", func(t *testing.T, c *Config) {
+			t.Helper()
+			assert.Equal(t, "/home/me/id_ed25519", c.SSHKeyPath)
+		}},
+		"github_user": {"octocat", func(t *testing.T, c *Config) {
+			t.Helper()
+			assert.Equal(t, "octocat", c.GitHubUser)
+		}},
+		"cache_ttl_minutes": {"30", func(t *testing.T, c *Config) {
+			t.Helper()
+			assert.Equal(t, 30, c.CacheTTLMinutes)
+		}},
+		"default_recipients": {"a.pub,, b.pub,", func(t *testing.T, c *Config) {
+			t.Helper()
+			assert.Equal(t, []string{"a.pub", "b.pub"}, c.DefaultRecipients,
+				"comma-split, trimmed, empties dropped")
+		}},
+		"log_file_path": {"/var/log/a.log", func(t *testing.T, c *Config) {
+			t.Helper()
+			assert.Equal(t, "/var/log/a.log", c.LogFilePath)
+		}},
+	}
 
-	_, err = runConfig(t, cfg, "set", "github_user", "octocat")
-	require.NoError(t, err)
-	assert.Equal(t, "octocat", cfg.GitHubUser)
-
-	_, err = runConfig(t, cfg, "set", "cache_ttl_minutes", "30")
-	require.NoError(t, err)
-	assert.Equal(t, 30, cfg.CacheTTLMinutes)
-
-	_, err = runConfig(t, cfg, "set", "default_recipients", "a.pub,, b.pub,")
-	require.NoError(t, err)
-	assert.Equal(t, []string{"a.pub", "b.pub"}, cfg.DefaultRecipients, "comma-split, trimmed, empties dropped")
+	assert.Len(t, cases, len(configKeys), "every key in configKeys needs a case")
+	for _, key := range configKeys {
+		tc, ok := cases[key]
+		require.True(t, ok, "configKeys lists %q with no test case", key)
+		t.Run(key, func(t *testing.T) {
+			cfg := &Config{}
+			_, err := runConfig(t, cfg, "set", key, tc.value)
+			require.NoError(t, err)
+			tc.check(t, cfg)
+		})
+	}
 }
 
 func TestConfig_SetRejectsBadKeyAndValue(t *testing.T) {
