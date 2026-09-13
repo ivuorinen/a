@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"io"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,7 +35,118 @@ func TestBuildVersionPrefersLdflagsStamp(t *testing.T) {
 	assert.Equal(t, "1.2.3-stamped", buildVersion(), "an ldflags stamp must win")
 
 	version = ""
-	assert.NotEmpty(t, buildVersion(), "with no stamp, fall back to build info")
+	// "(devel)" exactly, not merely non-empty: every return path of
+	// buildVersion is non-empty by construction, so NotEmpty asserts the type
+	// rather than the behavior. Under `go test` ReadBuildInfo reports
+	// Main.Version as "(devel)", which the guard rejects, so the constant is
+	// what must come back.
+	assert.Equal(t, "(devel)", buildVersion(),
+		"with no stamp and no release build info, the honest answer is (devel)")
+}
+
+// withBuildInfo replaces the readBuildInfo seam. Inside `go test` the real one
+// always reports Main.Version as "(devel)", so the release-version branch and
+// the info-unavailable branch are otherwise unreachable.
+func withBuildInfo(t *testing.T, ok bool, mainVersion string) {
+	t.Helper()
+	orig := readBuildInfo
+	readBuildInfo = func() (*debug.BuildInfo, bool) {
+		if !ok {
+			return nil, false
+		}
+		return &debug.BuildInfo{Main: debug.Module{Version: mainVersion}}, true
+	}
+	t.Cleanup(func() { readBuildInfo = orig })
+}
+
+// The three conditions guarding the build-info branch, each exercised both ways.
+// A stale or wrong version here sends bug reports to the wrong tag, which is the
+// defect that motivated the guard.
+func TestBuildVersionFromBuildInfo(t *testing.T) {
+	old := version
+	t.Cleanup(func() { version = old })
+	version = ""
+
+	t.Run("release version wins", func(t *testing.T) {
+		withBuildInfo(t, true, "v1.4.2")
+		assert.Equal(t, "v1.4.2", buildVersion(), "a real module version must be reported as-is")
+	})
+
+	t.Run("(devel) is rejected in favor of the constant", func(t *testing.T) {
+		withBuildInfo(t, true, "(devel)")
+		assert.Equal(t, "(devel)", buildVersion())
+	})
+
+	t.Run("empty version falls through", func(t *testing.T) {
+		withBuildInfo(t, true, "")
+		assert.Equal(t, "(devel)", buildVersion(),
+			"an empty Main.Version must not be reported as the version")
+	})
+
+	t.Run("no build info at all", func(t *testing.T) {
+		withBuildInfo(t, false, "")
+		assert.Equal(t, "(devel)", buildVersion())
+	})
+}
+
+// run() reports the process exit status. Both outcomes matter: a failing command
+// must not exit 0, and a succeeding one must not exit nonzero.
+func TestRun(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "cfg"))
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
+
+	// cobra reads os.Args, which is process-global: restore it or every test
+	// that runs afterwards inherits this one's argv.
+	origArgs := os.Args
+	t.Cleanup(func() { os.Args = origArgs })
+
+	t.Run("success", func(t *testing.T) {
+		os.Args = []string{"a", "config", "show"}
+		assert.Equal(t, 0, run())
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		os.Args = []string{"a", "completion", "powershell"}
+		assert.Equal(t, 1, run(), "a failing command must exit nonzero")
+	})
+}
+
+// PersistentPreRunE's two error returns, in-process. Previously these were
+// reachable only through the built binary.
+func TestRootCmdPreRunErrors(t *testing.T) {
+	t.Run("paths cannot be initialized", func(t *testing.T) {
+		t.Setenv("HOME", t.TempDir())
+		blocker := filepath.Join(t.TempDir(), "notadir")
+		require.NoError(t, os.WriteFile(blocker, []byte("x"), 0o600))
+		t.Setenv("XDG_CONFIG_HOME", filepath.Join(blocker, "child"))
+
+		c := newRootCmd()
+		c.SetArgs([]string{"config", "show"})
+		c.SetOut(&bytes.Buffer{})
+		c.SetErr(&bytes.Buffer{})
+		assert.ErrorContains(t, c.Execute(), "error initializing paths")
+	})
+
+	t.Run("config cannot be loaded", func(t *testing.T) {
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		cfgHome := filepath.Join(home, "cfg")
+		require.NoError(t, os.MkdirAll(filepath.Join(cfgHome, "a"), 0o700))
+		// #nosec G306 -- group/other-accessible on purpose so LoadConfig rejects it
+		require.NoError(t, os.WriteFile(
+			filepath.Join(cfgHome, "a", "config.yaml"), []byte("github_user: x\n"), 0o644))
+		t.Setenv("XDG_CONFIG_HOME", cfgHome)
+		t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
+
+		c := newRootCmd()
+		c.SetArgs([]string{"config", "show"})
+		c.SetOut(&bytes.Buffer{})
+		c.SetErr(&bytes.Buffer{})
+		assert.ErrorContains(t, c.Execute(), "error loading config")
+	})
 }
 
 func TestInitConfigPaths(t *testing.T) {
@@ -75,8 +188,17 @@ func TestConfigWrappers(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "wrapped", reloaded.GitHubUser)
 
-	setupLogging(true)
-	setupLogging(false)
+	setupLogging(true) // verbose -> Debug admitted
+	log.Debug("debug probe")
+	body, err := os.ReadFile(cfg.LogFilePath) // #nosec G304 -- test temp path
+	require.NoError(t, err, "setupLogging must open the configured log file")
+	assert.Contains(t, string(body), "debug probe", "verbose must admit Debug records")
+
+	setupLogging(false) // non-verbose -> Debug filtered out
+	log.Debug("must not appear")
+	body, err = os.ReadFile(cfg.LogFilePath) // #nosec G304 -- test temp path
+	require.NoError(t, err)
+	assert.NotContains(t, string(body), "must not appear", "non-verbose must filter Debug")
 }
 
 func TestLoadAndSaveConfig(t *testing.T) {
@@ -135,6 +257,24 @@ func TestCmdConfig(t *testing.T) {
 	assert.ElementsMatch(t, []string{"set", "rem", "show"}, names, "config subcommands")
 }
 
+// requireBinary skips when bin is absent locally, but fails when CI is set.
+//
+// A build-environment dependency missing locally is not a product failure, so
+// the skip is right there. In CI it is the opposite: Go reports a skipped test
+// as `ok`, and the tests behind this guard are the ones that generate real SSH
+// keys plus TestCLIIntegration, the only coverage of main(). A runner image
+// that quietly stopped shipping ssh-keygen would retire all of them behind a
+// green run, which is the failure this branch exists to make loud.
+func requireBinary(t *testing.T, bin string) {
+	t.Helper()
+	if _, err := exec.LookPath(bin); err != nil {
+		if os.Getenv("CI") != "" {
+			t.Fatalf("%s missing on a CI runner that must provide it: %v", bin, err)
+		}
+		t.Skipf("%s not available", bin)
+	}
+}
+
 // Helper to generate a temporary SSH keypair for testing.
 //
 // Each keypair gets its own t.TempDir() so several can be generated within one
@@ -143,13 +283,11 @@ func TestCmdConfig(t *testing.T) {
 // os.MkdirTemp: it registers its own cleanup and needs no parent directory
 // threaded through the callers.
 //
-// Callers must guard with requireSSHKeygen: ssh-keygen is a build-environment
+// Callers must guard with requireBinary: ssh-keygen is a build-environment
 // dependency, and its absence must skip rather than report as a product failure.
 func generateSSHKeyPair(t *testing.T) (privKey, pubKey string, err error) {
 	t.Helper()
-	if _, lookErr := exec.LookPath("ssh-keygen"); lookErr != nil {
-		t.Skip("ssh-keygen not available")
-	}
+	requireBinary(t, "ssh-keygen")
 	privKey = filepath.Join(t.TempDir(), "id_rsa")
 	pubKey = privKey + ".pub"
 	// #nosec G204 -- test helper; all args are literals except privKey, which is a path under a test temp dir
@@ -268,7 +406,38 @@ func TestSetupLoggingFallback(t *testing.T) {
 	// every command (including the `config` command needed to fix it).
 	dir := t.TempDir()
 	cfg = &cmd.Config{LogFilePath: dir}
-	setupLogging(false) // must not panic; degrades to stderr
+
+	setupLogging(false)
+
+	// "Must not panic" was the old criterion, and an empty body satisfied it.
+	// The fallback logger has to be usable, and nothing may have been created
+	// at the unusable path.
+	log.Info("probe")
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	assert.Empty(t, entries, "a directory log path must not gain a file")
+}
+
+func TestRollLog(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "cli.log")
+
+	// Under the cap: left alone, so a roll never discards a live log.
+	require.NoError(t, os.WriteFile(path, []byte("small"), 0o600))
+	rollLog(path)
+	assert.NoFileExists(t, path+".1", "a log under the cap must not roll")
+
+	// Over the cap: moved aside, and the previous generation is kept rather
+	// than deleted, so the run that triggered the roll stays recoverable.
+	require.NoError(t, os.WriteFile(path, make([]byte, maxLogBytes+1), 0o600))
+	rollLog(path)
+	assert.NoFileExists(t, path, "the oversized log must be moved aside")
+	assert.FileExists(t, path+".1", "one previous generation is kept")
+
+	// Absent path and empty path are both no-ops, not panics: rollLog runs on
+	// every command, ahead of the OpenFile that creates the file.
+	rollLog(filepath.Join(dir, "never-existed.log"))
+	rollLog("")
 }
 
 func TestInitConfigPathsWrapperError(t *testing.T) {
@@ -276,7 +445,7 @@ func TestInitConfigPathsWrapperError(t *testing.T) {
 	blocker := filepath.Join(t.TempDir(), "notadir")
 	require.NoError(t, os.WriteFile(blocker, []byte("x"), 0o600))
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(blocker, "child"))
-	assert.Error(t, initConfigPaths())
+	assert.ErrorContains(t, initConfigPaths(), "not a directory")
 }
 
 func TestLoadConfigWrapperError(t *testing.T) {
@@ -291,16 +460,29 @@ func TestLoadConfigWrapperError(t *testing.T) {
 
 // TestCLIIntegration builds the real binary and drives a full lifecycle through it,
 // covering main(), PersistentPreRunE, and the command wiring end to end.
+//
+// main() runs in a subprocess, so a plain `go test -coverprofile` cannot see any
+// of it and reports the function at 0% however thoroughly this test exercises
+// it. Setting A_INTEGRATION_GOCOVERDIR builds the binary with `-cover` and
+// points it at that directory, so `just coverage` can merge the subprocess's
+// counters into the unit-test profile. Unset (the default, and every plain
+// `go test` run), the build is ordinary and nothing here changes.
 func TestCLIIntegration(t *testing.T) {
 	for _, bin := range []string{"go", "ssh-keygen"} {
-		if _, err := exec.LookPath(bin); err != nil {
-			t.Skipf("%s not available", bin)
-		}
+		requireBinary(t, bin)
 	}
 
+	covDir := os.Getenv("A_INTEGRATION_GOCOVERDIR")
 	binPath := filepath.Join(t.TempDir(), "a")
+	buildArgs := []string{"build", "-o", binPath, "."}
+	if covDir != "" {
+		// #nosec G703 -- covDir is the coverage directory the Justfile hands this
+		// test, not user input; 0750 so `go tool covdata` can read it back.
+		require.NoError(t, os.MkdirAll(covDir, 0o750))
+		buildArgs = []string{"build", "-cover", "-o", binPath, "."}
+	}
 	// #nosec G204 -- test builds the current module with a controlled temp output path
-	if out, err := exec.Command("go", "build", "-o", binPath, ".").CombinedOutput(); err != nil {
+	if out, err := exec.Command("go", buildArgs...).CombinedOutput(); err != nil {
 		t.Fatalf("build failed: %v\n%s", err, out)
 	}
 
@@ -313,10 +495,20 @@ func TestCLIIntegration(t *testing.T) {
 		// log into the developer's real ~/.local/state.
 		"XDG_STATE_HOME="+filepath.Join(home, "state"),
 	)
+	if covDir != "" {
+		env = append(env, "GOCOVERDIR="+covDir)
+	}
 	run := func(args ...string) (string, error) {
 		// #nosec G204 -- launches the freshly built test binary with controlled args
 		c := exec.Command(binPath, args...)
 		c.Env = env
+		out, err := c.CombinedOutput()
+		return string(out), err
+	}
+	runWithEnv := func(extra []string, args ...string) (string, error) {
+		// #nosec G204 -- launches the freshly built test binary with controlled args
+		c := exec.Command(binPath, args...)
+		c.Env = append(append([]string{}, env...), extra...)
 		out, err := c.CombinedOutput()
 		return string(out), err
 	}
@@ -328,6 +520,24 @@ func TestCLIIntegration(t *testing.T) {
 
 	_, err = run("completion", "powershell")
 	assert.Error(t, err, "unknown shell should fail")
+
+	// PersistentPreRunE's two error returns, which only main() reaches. Both must
+	// exit nonzero and say which stage failed: a config the tool cannot set up is
+	// not something to proceed past.
+	blocker := filepath.Join(home, "notadir")
+	require.NoError(t, os.WriteFile(blocker, []byte("x"), 0o600))
+	out, err = runWithEnv([]string{"XDG_CONFIG_HOME=" + filepath.Join(blocker, "child")}, "config", "show")
+	require.Error(t, err, "an unusable config directory must fail the command")
+	assert.Contains(t, out, "error initializing paths")
+
+	badHome := t.TempDir()
+	badCfgDir := filepath.Join(badHome, "a")
+	require.NoError(t, os.MkdirAll(badCfgDir, 0o700))
+	// #nosec G306 -- group/other-accessible on purpose so LoadConfig rejects it
+	require.NoError(t, os.WriteFile(filepath.Join(badCfgDir, "config.yaml"), []byte("github_user: x\n"), 0o644))
+	out, err = runWithEnv([]string{"XDG_CONFIG_HOME=" + badHome}, "config", "show")
+	require.Error(t, err, "a group-readable config must fail the command")
+	assert.Contains(t, out, "error loading config")
 
 	// Full encrypt/decrypt roundtrip through the binary.
 	sshDir := filepath.Join(home, ".ssh")
