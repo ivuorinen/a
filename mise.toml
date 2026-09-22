@@ -58,7 +58,7 @@ checkov = "3.3.17"                # pre-commit rev 3.3.13
 # --- build, release, and hooks -------------------------------------------------
 just = "1.58.0"
 # release.yml pins the action to "~> v2", so any v2 is acceptable.
-goreleaser = "2.18.1"
+goreleaser = "2.18.2"
 # `just precommit` prefers prek and falls back to pre-commit; pinning prek here
 # means the fallback is never needed.
 prek = "0.5.3"
