@@ -67,7 +67,7 @@ prek = "0.5.3"
 # stages, so a snapshot build would not exercise what CI does.
 # cosign matches the `cosign-release` pinned in .github/workflows/release.yml.
 cosign = "2.6.5"
-syft = "1.51.1"
+syft = "1.52.0"
 
 [settings]
 # Every tool here is pinned explicitly, so mise has no reason to also read a
