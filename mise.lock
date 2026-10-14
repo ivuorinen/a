@@ -553,43 +553,50 @@ url = "https://github.com/dominikh/go-tools/releases/download/2026.2.1/staticche
 url_api = "https://api.github.com/repos/dominikh/go-tools/releases/assets/524233774"
 
 [[tools.syft]]
-version = "1.52.0"
+version = "1.54.1"
 backend = "aqua:anchore/syft"
 
 [tools.syft."platforms.linux-arm64"]
-checksum = "sha256:c46d5e4c28e12aa4c5becfaa343ef1c7f89045b6b895f2c21d471c62db09c706"
-url = "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/syft/releases/assets/570445811"
+checksum = "sha256:dfdf0537610113edbefe1f1fc6548bc957b2d77439636ec824fcf0e10d46d054"
+url = "https://github.com/anchore/syft/releases/download/v1.54.1/syft_1.54.1_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/615916319"
+provenance = "cosign"
 
 [tools.syft."platforms.linux-arm64-musl"]
-checksum = "sha256:c46d5e4c28e12aa4c5becfaa343ef1c7f89045b6b895f2c21d471c62db09c706"
-url = "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/syft/releases/assets/570445811"
+checksum = "sha256:dfdf0537610113edbefe1f1fc6548bc957b2d77439636ec824fcf0e10d46d054"
+url = "https://github.com/anchore/syft/releases/download/v1.54.1/syft_1.54.1_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/615916319"
+provenance = "cosign"
 
 [tools.syft."platforms.linux-x64"]
-checksum = "sha256:caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d"
-url = "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/syft/releases/assets/570445809"
+checksum = "sha256:c069905b391cc4c20a5ba65ad5c10be2a7ba074f8ea6ad203e24d14e303dad47"
+url = "https://github.com/anchore/syft/releases/download/v1.54.1/syft_1.54.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/615916330"
+provenance = "cosign"
 
 [tools.syft."platforms.linux-x64-musl"]
-checksum = "sha256:caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d"
-url = "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/syft/releases/assets/570445809"
+checksum = "sha256:c069905b391cc4c20a5ba65ad5c10be2a7ba074f8ea6ad203e24d14e303dad47"
+url = "https://github.com/anchore/syft/releases/download/v1.54.1/syft_1.54.1_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/615916330"
+provenance = "cosign"
 
 [tools.syft."platforms.macos-arm64"]
-checksum = "sha256:014d561b6d13059124155f74a6c5a9a99501f5e209313638dd884f39eb418ee6"
-url = "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/syft/releases/assets/570445806"
+checksum = "sha256:b4319c3abaa87a0170ab76ee83ea2260ca34b53aecfa3ab0dd5428d2319d744f"
+url = "https://github.com/anchore/syft/releases/download/v1.54.1/syft_1.54.1_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/615916332"
+provenance = "cosign"
 
 [tools.syft."platforms.macos-x64"]
-checksum = "sha256:56975f5d7ffa9846a1eaf64330647841b878097bc7e3730cb9325f93add96917"
-url = "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/anchore/syft/releases/assets/570445818"
+checksum = "sha256:2956322838b2f64e470eea474495f0cd96be4f222b1ac037258cdc47d965064e"
+url = "https://github.com/anchore/syft/releases/download/v1.54.1/syft_1.54.1_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/615916329"
+provenance = "cosign"
 
 [tools.syft."platforms.windows-x64"]
-checksum = "sha256:de787a374cf961c56fd7b206b2e183295abba32d0af3cb44d9aef2357ca9eda2"
-url = "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_windows_amd64.zip"
-url_api = "https://api.github.com/repos/anchore/syft/releases/assets/570445831"
+checksum = "sha256:8b56e8285e295e0bbed26eeea9b16ed51c493be97ccdf42dae6326c84fe8e19f"
+url = "https://github.com/anchore/syft/releases/download/v1.54.1/syft_1.54.1_windows_amd64.zip"
+url_api = "https://api.github.com/repos/anchore/syft/releases/assets/615916316"
+provenance = "cosign"
 
 [[tools.yamlfmt]]
 version = "0.21.0"
