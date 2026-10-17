@@ -27,7 +27,7 @@ go = "1.27.1"
 # Its .golangci.yml enables 27 linters, gosec and staticcheck among them, so the
 # two standalone entries below are for running a single analyzer directly.
 golangci-lint = "2.14.0"
-staticcheck = "2026.2.1"
+staticcheck = "2026.2.2"
 # github: rather than aqua: -- both resolve to a byte-identical binary, but the
 # github backend verifies the release's GitHub artifact attestations, where aqua
 # only checks a checksum. gosec has no plain registry entry either way.
