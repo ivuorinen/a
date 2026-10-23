@@ -1,6 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "github>ivuorinen/renovate-config"
-  ]
+  "extends": ["github>ivuorinen/renovate-config"],
+  "gitIgnoredAuthors": ["189535814+fiximus@users.noreply.github.com"]
 }
