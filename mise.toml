@@ -20,7 +20,7 @@
 # A Go newer than the analyzers below can break them: a linter built with an
 # older Go refuses a module targeting a newer one ("the Go language version used
 # to build golangci-lint is lower than the targeted Go version").
-go = "1.27.2"
+go = "1.27.3"
 
 # --- Go static analysis --------------------------------------------------------
 # Matches the version pinned in .github/workflows/test.yml's golangci-lint-action.
