@@ -125,43 +125,50 @@ url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_
 url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593963229"
 
 [[tools.cosign]]
-version = "2.6.5"
+version = "3.1.4"
 backend = "aqua:sigstore/cosign"
 
 [tools.cosign."platforms.linux-arm64"]
-checksum = "sha256:426193b4c5da4d4d643e822f48fe0cc8a476ca1782a272704831f5a0cef716d7"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-linux-arm64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503259219"
+checksum = "sha256:ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660068106"
+provenance = "cosign"
 
 [tools.cosign."platforms.linux-arm64-musl"]
-checksum = "sha256:426193b4c5da4d4d643e822f48fe0cc8a476ca1782a272704831f5a0cef716d7"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-linux-arm64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503259219"
+checksum = "sha256:ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660068106"
+provenance = "cosign"
 
 [tools.cosign."platforms.linux-x64"]
-checksum = "sha256:c3b4f5410e608af03a5eb0aaac84a4313d8da131248e08ff1759ac70c79d1644"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-linux-amd64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503259054"
+checksum = "sha256:424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069428"
+provenance = "cosign"
 
 [tools.cosign."platforms.linux-x64-musl"]
-checksum = "sha256:c3b4f5410e608af03a5eb0aaac84a4313d8da131248e08ff1759ac70c79d1644"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-linux-amd64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503259054"
+checksum = "sha256:424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069428"
+provenance = "cosign"
 
 [tools.cosign."platforms.macos-arm64"]
-checksum = "sha256:4d41cc18f0563907c0c785b51db76e1d1af10db4422b605ba876b1758e1771ab"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-darwin-arm64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503258807"
+checksum = "sha256:9f9b8cd557cf2e5b3df3373a00baa005a86b02391e3e06dd0ce37b3a1533d3a4"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-darwin-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069257"
+provenance = "cosign"
 
 [tools.cosign."platforms.macos-x64"]
-checksum = "sha256:0f8a1a70c81de9740a2b62e91307ff396ce54e7dd80568d42411bb2d9d44269c"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-darwin-amd64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503258707"
+checksum = "sha256:9d1e4abe2b6be279ed0d2ff706fde1ccd738747c834e3e6d44039c238867334f"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-darwin-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069002"
+provenance = "cosign"
 
 [tools.cosign."platforms.windows-x64"]
-checksum = "sha256:19ec346d0050f59ffad9694da97ef9704be34ec60ddc41c5f1d16d8619385825"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-windows-amd64.exe"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503258915"
+checksum = "sha256:cbe953787074611f1334cbf37dc1cf953995bb8c45398eb4fc7bb781d29c1f2a"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-windows-amd64.exe"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660070803"
+provenance = "cosign"
 
 [[tools."github:securego/gosec"]]
 version = "2.29.0"
