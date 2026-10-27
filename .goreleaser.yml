@@ -182,9 +182,10 @@ changelog:
   use: github
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
+      # Optional scope and `!`: every Renovate commit is scoped (`chore(deps):`,
+      # `chore(actions):`, `chore(tooling):`), and an unscoped `^chore:` let all
+      # of them through. `fix(deps):` stays in on purpose; it ships in the binary.
+      - '^(docs|test|chore)(\([^)]*\))?!?:'
       - "typo"
       - "Merge pull request"
       - "Merge branch"
