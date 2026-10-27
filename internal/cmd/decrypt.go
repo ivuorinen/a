@@ -15,10 +15,6 @@ import (
 	"golang.org/x/term"
 )
 
-// passphrasePrompt reads a passphrase for an encrypted SSH key. It is a package
-// variable so tests can supply one without a terminal: under `go test` stdin is
-// never a tty, so a hardcoded prompt makes the entire successful-decryption path
-// for passphrase-protected keys unreachable by any test.
 // termIsTerminal and termReadPassword wrap the x/term calls passphrasePrompt
 // makes. They are package variables so the prompt's body is reachable under
 // `go test`, where stdin is never a tty: otherwise the function returns at the
@@ -29,6 +25,10 @@ var (
 	termReadPassword = term.ReadPassword
 )
 
+// passphrasePrompt reads a passphrase for an encrypted SSH key. It is a package
+// variable so tests can supply one without a terminal: under `go test` stdin is
+// never a tty, so a hardcoded prompt makes the entire successful-decryption path
+// for passphrase-protected keys unreachable by any test.
 var passphrasePrompt = func(keyPath string) ([]byte, error) {
 	fd := int(os.Stdin.Fd())
 	if !termIsTerminal(fd) {
