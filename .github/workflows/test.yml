@@ -86,13 +86,10 @@ jobs:
         run: ./scripts/check-conditions.sh
 
       - name: Cross-compile every released target
-        # .goreleaser.yml builds 5 GOOS x 4 GOARCH, but the job above only ever
-        # compiles linux/amd64. Without this, a pushed v*.*.* tag is the first
-        # build of any other target and a failure lands after the tag is public,
-        # in a job holding contents:write. Build only; the tests stay on linux.
-        run: |
-          for target in darwin/amd64 darwin/arm64 freebsd/amd64 openbsd/amd64 \
-                        netbsd/amd64 linux/arm64 linux/arm linux/386; do
-            GOOS=${target%/*} GOARCH=${target#*/} go build -o /dev/null ./... \
-              || { echo "::error::build failed for $target"; exit 1; }
-          done
+        # The jobs above only ever compile linux/amd64. Without this, a pushed
+        # v*.*.* tag is the first build of any other target and a failure lands
+        # after the tag is public, in a job holding contents:write. GoReleaser
+        # builds its own `builds:` matrix, so the target list lives only in
+        # .goreleaser.yml; a hand-copied list here had already dropped six of the
+        # fifteen targets. Build only; the tests stay on linux.
+        run: goreleaser build --snapshot --clean
