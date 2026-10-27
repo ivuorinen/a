@@ -39,7 +39,7 @@ go list -deps -f '{{with .Module}}{{.Path}}	{{.Version}}	{{.Dir}}{{end}}' . |
     for f in LICENSE LICENSE.txt LICENSE.md COPYING NOTICE; do
       [ -f "$dir/$f" ] || continue
       # The filename goes in the heading, not a subheading: a module shipping
-      # both LICENSE and NOTICE (gopkg.in/yaml.v3 does) would otherwise emit the
+      # both LICENSE and NOTICE (go.yaml.in/yaml/v3 does) would otherwise emit the
       # same heading twice and trip markdownlint MD024. ```text, not a bare
       # fence, for MD040 -- this file is linted like any other markdown here.
       printf '\n## %s %s — %s\n\n```text\n' "$path" "$version" "$f" >>"$out"
