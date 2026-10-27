@@ -190,17 +190,12 @@ func InitConfigPaths() (ConfigPaths, error) {
 // LoadConfig loads configuration from the YAML file.
 //
 // cfgFile is supplied by InitConfigPaths (derived from os.UserConfigDir), not from
-// user input, so it is trusted. A missing file yields a default config so callers
-// can bootstrap one.
+// user input, so it is trusted. InitConfigPaths also writes the default file on
+// first run, so a missing file here is an error. A separate in-memory default
+// for that case used to disagree with the written one (cache TTL 0, i.e.
+// caching off, instead of defaultCacheTTLMinutes).
 func LoadConfig(cfgFile string) (*Config, error) {
 	info, err := os.Stat(cfgFile)
-	if errors.Is(err, os.ErrNotExist) {
-		cfg := &Config{}
-		if err := applyConfigDefaults(cfg); err != nil {
-			return nil, err
-		}
-		return cfg, nil
-	}
 	if err != nil {
 		return nil, fmt.Errorf("could not stat config file: %w", err)
 	}
