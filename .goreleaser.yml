@@ -8,10 +8,9 @@ version: 2
 # Set the project name
 project_name: a
 
-# Clean dist folder before build
-before:
-  hooks:
-    - go mod tidy
+# No `before: go mod tidy` hook: it rewrote go.mod/go.sum after checkout, so a
+# release could link a module graph the tag does not contain and CI never
+# tested. `go build` defaults to -mod=readonly and fails on an incomplete go.mod.
 
 # Build configuration
 builds:
