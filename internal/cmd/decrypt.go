@@ -6,7 +6,6 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"filippo.io/age"
@@ -85,14 +84,14 @@ func parseSSHIdentity(keyPath string, pem []byte) (age.Identity, error) {
 // tryDecrypt attempts to decrypt input to output using the SSH private key at
 // keyPath.
 //
-// Plaintext is written to a 0600 temp file in the target directory and renamed
-// onto output only after decryption fully succeeds. This is critical: age
-// authenticates the stream incrementally, so writing straight to output would
-// leave a partial, potentially group/world-readable plaintext fragment on disk
-// (and destroy any pre-existing file) whenever a decrypt fails partway — a
+// Plaintext goes through writeAtomic: a 0600 temp file in the target directory,
+// renamed onto output only after decryption fully succeeds. This is critical:
+// age authenticates the stream incrementally, so writing straight to output
+// would leave a partial, potentially group/world-readable plaintext fragment on
+// disk (and destroy any pre-existing file) whenever a decrypt fails partway — a
 // tampered or truncated ciphertext, a full disk, or a wrong-but-header-matching
 // attempt. The temp-then-rename keeps failures from ever touching the target.
-func tryDecrypt(keyPath, output, input string) (err error) {
+func tryDecrypt(keyPath, output, input string) error {
 	if keyPath == "" || output == "" || input == "" {
 		return fmt.Errorf("invalid arguments for decryption: empty path")
 	}
@@ -118,32 +117,12 @@ func tryDecrypt(keyPath, output, input string) (err error) {
 		return err // wrong key or not an age file
 	}
 
-	// createTemp wraps os.CreateTemp, which creates the file with 0600; the
-	// plaintext is never readable by group/other, even transiently.
-	tmp, err := createTemp(filepath.Dir(output), ".a-decrypt-*")
-	if err != nil {
-		return fmt.Errorf("creating temp output: %w", err)
-	}
-	tmpName := tmp.Name()
-	// Any failure below (including a failed rename) must remove the temp so no
-	// partial plaintext lingers.
-	defer func() {
-		if err != nil {
-			_ = os.Remove(tmpName)
+	return writeAtomic(output, ".a-decrypt-*", func(tmp io.Writer) error {
+		if _, err := io.Copy(tmp, r); err != nil {
+			return fmt.Errorf("writing plaintext: %w", err)
 		}
-	}()
-
-	if _, err = io.Copy(tmp, r); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("writing plaintext: %w", err)
-	}
-	if err = tmp.Close(); err != nil {
-		return fmt.Errorf("closing temp output: %w", err)
-	}
-	if err = os.Rename(tmpName, output); err != nil {
-		return fmt.Errorf("finalizing output: %w", err)
-	}
-	return nil
+		return nil
+	})
 }
 
 // selectSSHKey determines which SSH key to use based on flags and config.

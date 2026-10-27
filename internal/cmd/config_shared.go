@@ -42,13 +42,12 @@ const maxCacheTTLMinutes = int(math.MaxInt64 / int64(time.Minute))
 // of merely asserted to be unreachable.
 var yamlMarshal = yaml.Marshal
 
-// tempFile is the subset of *os.File that the atomic-write helpers use.
+// tempFile is the subset of *os.File that writeAtomic uses.
 //
-// SaveConfig, encryptFile and tryDecrypt all write to a temp file and rename it
-// over the target, and each guards the Write and Close along the way. Those
-// guards exist for a full disk or an I/O error mid-write, neither of which can
-// be provoked against a real file in a temp directory — so without this
-// interface those branches cannot be tested at all.
+// writeAtomic guards the Write and Close of its temp file. Those guards exist
+// for a full disk or an I/O error mid-write, neither of which can be provoked
+// against a real file in a temp directory — so without this interface those
+// branches cannot be tested at all.
 type tempFile interface {
 	io.Writer
 	Close() error
@@ -68,6 +67,52 @@ var createTemp = func(dir, pattern string) (tempFile, error) {
 		return nil, err
 	}
 	return f, nil
+}
+
+// writeAtomic writes target through a 0600 temp file in target's directory,
+// filled by fill, and renames it into place only after fill and Close both
+// succeed. A failed or interrupted write therefore never truncates an existing
+// target or leaves a partial one at its path, and the temp file is removed on
+// every error path.
+//
+// SaveConfig, encryptFile, tryDecrypt and writeKeyCache all write through it.
+// Each used to carry its own copy of this sequence, and the key cache was the
+// one that skipped it: os.WriteFile truncated the cache in place, so a
+// concurrent encrypt could read it as a fresh, empty hit.
+//
+// The rename is not fsynced, so the guarantee stops at process death: a host
+// crash inside the writeback window can still leave a zero-length target. Add
+// tmp.Sync() before the Close below if that ever needs to hold.
+func writeAtomic(target, pattern string, fill func(io.Writer) error) (err error) {
+	tmp, err := createTemp(filepath.Dir(target), pattern)
+	if err != nil {
+		return fmt.Errorf("creating temp output: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer func() {
+		if err != nil {
+			_ = os.Remove(tmpName)
+		}
+	}()
+	if err = fill(tmp); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err = tmp.Close(); err != nil {
+		return fmt.Errorf("closing temp output: %w", err)
+	}
+	if err = os.Rename(tmpName, target); err != nil {
+		return fmt.Errorf("finalizing output: %w", err)
+	}
+	return nil
+}
+
+// writeBytes is a writeAtomic fill that writes content already in memory.
+func writeBytes(data []byte) func(io.Writer) error {
+	return func(w io.Writer) error {
+		_, err := w.Write(data)
+		return err
+	}
 }
 
 // userConfigDir resolves the base configuration directory for goos.
@@ -219,37 +264,16 @@ func applyConfigDefaults(cfg *Config) error {
 
 // SaveConfig saves configuration to the YAML file.
 //
-// It writes to a temp file (created 0600) in the config directory and renames it
-// over cfgFile, so a failed or interrupted write cannot truncate the existing
-// config, and the result is always 0600 (which LoadConfig requires).
-//
-// The rename is not fsynced, so the guarantee stops at process death: a host
-// crash inside the writeback window can still leave a zero-length config, which
-// LoadConfig reads as an empty one rather than an error. Add tmp.Sync() before
-// the Close below if that ever needs to hold.
-func SaveConfig(cfgFile string, cfg *Config) (err error) {
+// It goes through writeAtomic, so a failed or interrupted write cannot truncate
+// the existing config, and the result is always 0600 (which LoadConfig
+// requires). A zero-length config left by a host crash (see writeAtomic) is read
+// by LoadConfig as an empty one rather than an error.
+func SaveConfig(cfgFile string, cfg *Config) error {
 	data, err := yamlMarshal(cfg)
 	if err != nil {
 		return err
 	}
-	tmp, err := createTemp(filepath.Dir(cfgFile), ".config-*.yaml")
-	if err != nil {
-		return err
-	}
-	tmpName := tmp.Name()
-	defer func() {
-		if err != nil {
-			_ = os.Remove(tmpName)
-		}
-	}()
-	if _, err = tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		return err
-	}
-	if err = tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmpName, cfgFile)
+	return writeAtomic(cfgFile, ".config-*.yaml", writeBytes(data))
 }
 
 // ScanSSHPrivateKeys scans ~/.ssh for private keys matching id_* (excluding .pub).

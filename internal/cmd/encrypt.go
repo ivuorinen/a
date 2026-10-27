@@ -283,8 +283,13 @@ func readKeyCache(cachePath string, ttlMinutes int) ([]string, bool) {
 }
 
 // writeKeyCache stores the raw .keys response; failures are non-fatal (best effort).
+//
+// Through writeAtomic rather than os.WriteFile: readKeyCache takes any file
+// younger than the TTL as a hit, and os.WriteFile truncates in place, so a
+// concurrent encrypt to the same user could read the cache empty (and fail) or
+// half-written (and encrypt to a subset of the user's keys).
 func writeKeyCache(cachePath string, body []byte, log *slog.Logger) {
-	if err := os.WriteFile(cachePath, body, 0o600); err != nil {
+	if err := writeAtomic(cachePath, ".keys-*", writeBytes(body)); err != nil {
 		log.Warn("Failed to cache GitHub keys", "path", cachePath, "error", err)
 	}
 }
@@ -346,11 +351,10 @@ func parseRecipient(s string) (age.Recipient, error) {
 // encryptFile encrypts input to output for the given recipients, writing the age
 // file with 0600 permissions.
 //
-// It writes to a temp file in the target directory and renames onto output only
-// after encryption fully succeeds (mirrors tryDecrypt): a failed or partial
+// It writes through writeAtomic (as tryDecrypt does): a failed or partial
 // encryption never truncates a pre-existing file or leaves a half-written .age at
 // the target path.
-func encryptFile(input, output string, recipients []age.Recipient) (err error) {
+func encryptFile(input, output string, recipients []age.Recipient) error {
 	// #nosec G304 -- input path is a validated CLI flag/argument
 	in, err := os.Open(input)
 	if err != nil {
@@ -358,37 +362,19 @@ func encryptFile(input, output string, recipients []age.Recipient) (err error) {
 	}
 	defer func() { _ = in.Close() }()
 
-	// createTemp wraps os.CreateTemp, which creates the file with 0600.
-	tmp, err := createTemp(filepath.Dir(output), ".a-encrypt-*")
-	if err != nil {
-		return fmt.Errorf("creating temp output: %w", err)
-	}
-	tmpName := tmp.Name()
-	defer func() {
+	return writeAtomic(output, ".a-encrypt-*", func(tmp io.Writer) error {
+		w, err := age.Encrypt(tmp, recipients...)
 		if err != nil {
-			_ = os.Remove(tmpName)
+			return fmt.Errorf("initializing encryption: %w", err)
 		}
-	}()
-
-	w, err := age.Encrypt(tmp, recipients...)
-	if err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("initializing encryption: %w", err)
-	}
-	if _, err = io.Copy(w, in); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("writing ciphertext: %w", err)
-	}
-	// Close the age writer first (flushes the final chunk), then the temp file.
-	if err = w.Close(); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("finalizing encryption: %w", err)
-	}
-	if err = tmp.Close(); err != nil {
-		return fmt.Errorf("closing temp output: %w", err)
-	}
-	if err = os.Rename(tmpName, output); err != nil {
-		return fmt.Errorf("finalizing output: %w", err)
-	}
-	return nil
+		if _, err := io.Copy(w, in); err != nil {
+			return fmt.Errorf("writing ciphertext: %w", err)
+		}
+		// The age writer buffers the last chunk; only Close flushes it, and it
+		// must succeed before writeAtomic closes and renames the temp file.
+		if err := w.Close(); err != nil {
+			return fmt.Errorf("finalizing encryption: %w", err)
+		}
+		return nil
+	})
 }

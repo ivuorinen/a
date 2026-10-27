@@ -77,9 +77,9 @@ for them, and two of those groups are still unreachable *in production*:
   ignoring an error return is worse. The seam makes them executable in tests; it
   does not make them reachable in practice.
 - **`tempFile` / `createTemp`** (`config_shared.go`). The `Write` and `Close`
-  guards in `SaveConfig`, `encryptFile` and `tryDecrypt` fire on a full disk or
-  an I/O error mid-write. Both are real, neither can be provoked against a file
-  in a temp directory.
+  guards in `writeAtomic` (behind `SaveConfig`, `encryptFile`, `tryDecrypt` and
+  `writeKeyCache`) fire on a full disk or an I/O error mid-write. Both are real,
+  neither can be provoked against a file in a temp directory.
 - **`userConfigDir(goos)`** (`config_shared.go`). The darwin branch is real on
   macOS and dead on every other platform. Parameterizing on `goos` makes it
   checkable from a linux runner.
