@@ -109,8 +109,9 @@ critical-path functions; 10 survived at some point and all are now caught:
   table in `TestLoadConfig_RejectsGroupOtherPerms`.
 - `tryDecrypt`'s empty-path guard deleted — `TestTryDecrypt_EmptyPath` asserts
   the message, not merely that an error occurred.
-- `Completion` mapping bash to the zsh generator — `TestCompletion_ValidShells`
-  asserts a per-shell marker in the captured script.
+- `completion` accepting an unknown shell with exit 0 (cobra's default command
+  is not runnable as built) — `TestCompletionCommand`, plus a per-shell marker
+  for each generated script in `TestCLIIntegration`.
 - `SaveConfig`'s error text replaced with an unrelated string — the ten formerly
   bare `assert.Error` calls assert messages.
 - `setConfigKey` losing its `log_file_path` arm — `TestConfig_SetEachKey` is

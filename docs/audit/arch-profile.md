@@ -38,8 +38,9 @@ internal/cmd/            package cmd — one file per command plus shared config
   config.go              `config` command + key setter/formatter
   encrypt.go             `encrypt` command + recipient collection, GitHub fetch, cache
   decrypt.go             `decrypt` command + SSH identity parsing, key iteration
-  completion.go          `completion` command
 ```
+
+`completion` is cobra's built-in command, not code in this repository.
 
 Dependency direction (from `go list`):
 
@@ -49,11 +50,11 @@ Dependency direction (from `go list`):
   the compiler rather than by convention. Commit 28f8e35 moved the package
   under `internal/` for exactly that reason.
 
-Composition is by constructor injection: `Encrypt`, `Decrypt`, `ConfigCmd`, and
-`Completion` each take their collaborators (`*Config`, `*slog.Logger`, a
-`saveConfig` callback, the root command) as arguments and return a
-`*cobra.Command`. No package-level state lives in `internal/cmd`; the mutable
-globals (`log`, `cfg`, `cfgFile`, `cacheDir`) are all in `main`.
+Composition is by constructor injection: `Encrypt`, `Decrypt` and `ConfigCmd`
+each take their collaborators (`*Config`, `*slog.Logger`, a `saveConfig`
+callback) as arguments and return a `*cobra.Command`. No package-level state
+lives in `internal/cmd`; the mutable globals (`log`, `cfg`, `cfgFile`,
+`cacheDir`) are all in `main`.
 
 Two package variables in `internal/cmd` exist as test seams and are documented
 as such: `githubKeysURL` (encrypt.go:189) and `passphrasePrompt`

@@ -109,9 +109,33 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("failure", func(t *testing.T) {
-		os.Args = []string{"a", "completion", "powershell"}
+		os.Args = []string{"a", "decrypt", filepath.Join(home, "missing.age")}
 		assert.Equal(t, 1, run(), "a failing command must exit nonzero")
 	})
+}
+
+// cobra builds its default completion command without a RunE, and cobra answers
+// a non-runnable command's unknown argument with its help and exit 0, so
+// `a completion tcsh` read as success. newRootCmd gives it one: bare
+// `completion` still prints the help, and an unknown shell is an error.
+func TestCompletionCommand(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "cfg"))
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(home, "cache"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
+
+	var out bytes.Buffer
+	root := newRootCmd()
+	root.SetOut(&out)
+	root.SetErr(&out)
+
+	root.SetArgs([]string{"completion"})
+	require.NoError(t, root.Execute())
+	assert.Contains(t, out.String(), "Generate the autocompletion script")
+
+	root.SetArgs([]string{"completion", "tcsh"})
+	assert.ErrorContains(t, root.Execute(), `unknown command "tcsh" for "a completion"`)
 }
 
 // PersistentPreRunE's two error returns, in-process. Previously these were
@@ -513,13 +537,30 @@ func TestCLIIntegration(t *testing.T) {
 		return string(out), err
 	}
 
-	// Subcommand runs the full PersistentPreRunE wiring (init/load/logging).
-	out, err := run("completion", "bash")
-	require.NoError(t, err, out)
-	assert.NotEmpty(t, out, "completion script should be produced")
-
-	_, err = run("completion", "powershell")
+	// cobra's built-in completion command, one subcommand per shell. It runs the
+	// full PersistentPreRunE wiring (init/load/logging) like any other command.
+	for shell, marker := range map[string]string{
+		"bash":       "__start_a",
+		"zsh":        "#compdef a",
+		"fish":       "complete -c a",
+		"powershell": "Register-ArgumentCompleter",
+	} {
+		out, err := run("completion", shell)
+		require.NoError(t, err, out)
+		assert.Contains(t, out, marker, "%s must produce the %s script", shell, shell)
+	}
+	_, err := run("completion", "tcsh")
 	assert.Error(t, err, "unknown shell should fail")
+
+	// A usage mistake still prints the usage; a runtime failure does not, because
+	// the usage block buried the one line saying what went wrong.
+	out, err := run("encrypt", "one", "two", "three")
+	require.Error(t, err)
+	assert.Contains(t, out, "Usage:", "an argument-count error is a usage error")
+	out, err = run("decrypt", filepath.Join(home, "missing.age"))
+	require.Error(t, err)
+	assert.Contains(t, out, "input file does not exist")
+	assert.NotContains(t, out, "Usage:", "a runtime error must not print the usage block")
 
 	// PersistentPreRunE's two error returns, which only main() reaches. Both must
 	// exit nonzero and say which stage failed: a config the tool cannot set up is

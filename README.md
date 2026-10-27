@@ -92,7 +92,7 @@ grep a_<version>_darwin_arm64.tar.gz checksums.txt | shasum -a 256 -c -
 | `config [set\|rem\|show]` | `c` | View or change settings; bare `config` prints the commands and current config |
 | `encrypt [input] [github-user]` | `e` | Encrypt a file; output defaults to `<input>.age` |
 | `decrypt [input]` | `d` | Decrypt a file; output defaults to `<input>` without `.age` |
-| `completion [bash\|zsh\|fish]` | | Print a shell-completion script |
+| `completion [bash\|zsh\|fish\|powershell]` | | Print a shell-completion script |
 
 Add `-v` for verbose (debug) logging, and `--version` to print the build version
 (quote it in bug reports). The long flag form still works:
