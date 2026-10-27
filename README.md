@@ -138,7 +138,11 @@ run and print the `chmod` to apply.
 | `github_user` | Default GitHub user whose published keys are added as recipients |
 | `default_recipients` | Public-key files or key strings always added as recipients |
 | `cache_ttl_minutes` | Lifetime of cached GitHub keys, in minutes. Default `120`, which `a config rem cache_ttl_minutes` restores; zero or negative disables caching entirely |
-| `log_file_path` | JSON log of every encrypt and decrypt, including file paths and recipients. Defaults to `$XDG_STATE_HOME/a/cli.log` (`~/.local/state/a/cli.log`), mode `0600`, rolled to `cli.log.1` past 5 MiB. Point it at `/dev/null` to keep no record |
+| `log_file_path` | JSON log of every encrypt and decrypt, including file paths and recipients (see below) |
+
+The log defaults to `$XDG_STATE_HOME/a/cli.log` (`~/.local/state/a/cli.log`),
+is created with mode `0600`, and is rolled to `cli.log.1` past 5 MiB. Point
+`log_file_path` at `/dev/null` to keep no record.
 
 Fetched GitHub keys are cached (mode `0600`) in the user cache dir
 (`~/.cache/a/<user>.keys` on Linux, under `$XDG_CACHE_HOME/a/` if that is set)

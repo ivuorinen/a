@@ -31,13 +31,13 @@ None.
 ## Actual structure (evidence, not a pattern claim)
 
 ```text
-a.go                     package main — wiring only: version stamp, globals,
-                         cobra root, PersistentPreRunE, subcommand assembly
-internal/cmd/            package cmd — one file per command plus shared config
-  config_shared.go       Config type, path/IO primitives (Init/Load/Save, key scan)
-  config.go              `config` command + key setter/formatter
-  encrypt.go             `encrypt` command + recipient collection, GitHub fetch, cache
-  decrypt.go             `decrypt` command + SSH identity parsing, key iteration
+a.go                      package main — wiring only: version stamp, globals,
+                          cobra root, PersistentPreRunE, subcommand assembly
+internal/cmd/             package cmd — one file per command plus shared config
+  config_shared.go        Config type, path/IO primitives (Init/Load/Save, key scan)
+  config.go               `config` command + key setter/formatter
+  encrypt.go              `encrypt` command + recipient collection, GitHub fetch, cache
+  decrypt.go              `decrypt` command + SSH identity parsing, key iteration
 ```
 
 `completion` is cobra's built-in command, not code in this repository.
@@ -66,14 +66,14 @@ None inferred from a pattern. Three boundaries the code does hold, recorded so
 a later change that breaks one is visible as a change rather than as drift:
 
 1. `internal/cmd` imports nothing from this module. Any import of `main` or of
-   a future sibling package is a new dependency edge, not a refactor.
+    a future sibling package is a new dependency edge, not a refactor.
 2. `main` owns all mutable process state. `internal/cmd` receives its
-   collaborators as constructor arguments; a package-level `var` there that is
-   not a documented test seam breaks that.
+    collaborators as constructor arguments; a package-level `var` there that is
+    not a documented test seam breaks that.
 3. `main` mutates `*cfg` and `*log` in place rather than reassigning the
-   pointers, because subcommands capture them at construction time
-   (a.go:62-66, a.go:101-104). A subcommand that copies either value instead of
-   holding the pointer silently stops observing the loaded config.
+    pointers, because subcommands capture them at construction time
+    (a.go:62-66, a.go:101-104). A subcommand that copies either value instead of
+    holding the pointer silently stops observing the loaded config.
 
 ## Ambiguities & Contradictions
 
