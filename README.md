@@ -55,15 +55,19 @@ sudo mv a /usr/local/bin/   # optional
 
 ### Verifying a download
 
-Release checksums are keyless-signed with cosign via Sigstore:
+Release checksums are keyless-signed with cosign via Sigstore. Download
+`checksums.txt` and `checksums.txt.sigstore.json`, then:
 
 ```bash
 cosign verify-blob checksums.txt \
-  --certificate checksums.txt.pem \
-  --signature checksums.txt.sig \
+  --bundle checksums.txt.sigstore.json \
   --certificate-identity-regexp 'https://github.com/ivuorinen/a/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
+
+Releases up to v1.0.0 ship `checksums.txt.sig` and `checksums.txt.pem` instead
+of the bundle; pass `--signature checksums.txt.sig --certificate
+checksums.txt.pem` in place of `--bundle` for those.
 
 That authenticates `checksums.txt` itself. It says nothing about the archive you
 downloaded until you check that against it:

@@ -90,13 +90,14 @@ checksum:
 
 # Keyless-sign the checksums file with cosign via Sigstore (Fulcio + Rekor). The
 # OIDC identity comes from the workflow's id-token; no long-lived keys are stored.
+# cosign v3 writes certificate, signature and transparency-log proof into one
+# Sigstore bundle; releases up to v1.0.0 shipped separate .sig and .pem files.
 signs:
   - cmd: cosign
-    certificate: "${artifact}.pem"
+    signature: "${artifact}.sigstore.json"
     args:
       - sign-blob
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
+      - "--bundle=${signature}"
       - "${artifact}"
       - "--yes"
     artifacts: checksum
@@ -133,7 +134,7 @@ release:
 
     ### Behaviour changes since v1.0.0
 
-    Hardening fixes, each replacing a path that lost data or failed open. Two
+    Hardening fixes, each replacing a path that lost data or failed open. Three
     need action on upgrade:
 
     - `encrypt` and `decrypt` refuse to replace an existing output file, which
@@ -141,6 +142,10 @@ release:
       silently, with exit 0. Pass `-f` / `--force` where that was intended.
     - A config file that is group- or other-accessible is refused, and `a`
       prints the `chmod` to apply. Existing configs may need it once.
+    - `checksums.txt` is signed as a Sigstore bundle,
+      `checksums.txt.sigstore.json`, replacing `checksums.txt.sig` and
+      `checksums.txt.pem`. Verify with `cosign verify-blob --bundle`; the README
+      has the full command.
 
     The rest need nothing:
 
