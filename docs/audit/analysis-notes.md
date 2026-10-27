@@ -22,8 +22,8 @@ Condition coverage is therefore the gated one, via
 The script exists rather than a bare `gobco` call because gobco exits 0 even
 when it reports gaps — a check that cannot fail — and because it panics when
 handed more than one package. gobco is pinned in mise.toml and needs no entry in
-go.mod; the script falls back to `go run` at the same version when the binary is
-not on PATH, which is how CI runs it.
+go.mod; CI installs it from there through jdx/mise-action, and the script fails
+when the binary is not on PATH.
 
 Branch coverage is not gated: condition coverage subsumes it, and `just
 branches` is there for the coarser view when hunting an unreached arm rather

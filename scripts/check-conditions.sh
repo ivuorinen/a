@@ -22,15 +22,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-# Keep in sync with the gobco pin in mise.toml.
-GOBCO_VERSION=1.3.4
-
-if command -v gobco >/dev/null 2>&1; then
-  gobco=(gobco)
-else
-  # No mise-provided binary (CI): run the pinned version straight from the module
-  # proxy. Nothing is added to go.mod.
-  gobco=(go run "github.com/rillig/gobco@v${GOBCO_VERSION}")
+# mise.toml pins gobco and CI installs it from there, so the binary is always on
+# PATH where this runs. A missing one is a setup error, not a pass.
+if ! command -v gobco >/dev/null 2>&1; then
+  echo "::error::gobco not on PATH; run 'mise install'" >&2
+  exit 1
 fi
 
 # gobco copies the module to a temp directory and runs `go test` there, and the
@@ -47,7 +43,7 @@ status=0
 
 for pkg in . ./internal/cmd; do
   echo "==> conditions: ${pkg}"
-  out=$("${gobco[@]}" "$pkg" 2>&1) || {
+  out=$(gobco "$pkg" 2>&1) || {
     printf '%s\n' "$out"
     echo "::error::gobco failed to run for ${pkg}" >&2
     status=1

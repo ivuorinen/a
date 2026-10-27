@@ -15,7 +15,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest # ships ssh-keygen, which the key-generating tests need
-    timeout-minutes: 10
+    timeout-minutes: 15 # a cold mise cache builds govulncheck and gobco from source
     permissions:
       contents: read # check out the repository
     steps:
@@ -24,19 +24,25 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - name: Install the toolchain from mise.toml
+        # mise.toml is the only place these versions live; CI used to re-pin
+        # golangci-lint, govulncheck and gobco by hand, and the copies drifted.
+        # Only the tools this job calls are installed.
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
-          go-version-file: "go.mod"
+          version: 2026.10.19
+          install_args: go golangci-lint goreleaser go:golang.org/x/vuln/cmd/govulncheck go:github.com/rillig/gobco
 
       - name: Lint
         # .golangci.yml enables 27 linters that nothing ran: golangci-lint is in no
         # workflow, and pr-lint.yml's MegaLinter allow-list contains no Go linter.
         # --fix=false overrides `issues.fix: true` in .golangci.yml so CI reports
         # instead of rewriting the source it is meant to be checking.
+        # install-mode none runs the mise-installed binary; the action stays for
+        # its problem matchers, which annotate findings on the PR diff.
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
-          version: v2.15.0
+          install-mode: none
           args: --fix=false
 
       - name: Check third-party notices are current
@@ -68,9 +74,8 @@ jobs:
       - name: Check dependencies for known vulnerabilities
         # golangci-lint's gosec audits this repo's source; nothing audited the
         # modules it links, so x/crypto sat two minors behind two fixed ssh
-        # advisories unnoticed. Version matches mise.toml, so `just vuln` and
-        # this step are the same check.
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+        # advisories unnoticed. Same binary and command as `just vuln`.
+        run: govulncheck ./...
 
       - name: Check every condition is evaluated both ways
         # `go test -cover` counts statements, so a compound condition is marked

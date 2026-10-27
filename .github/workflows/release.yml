@@ -28,19 +28,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false # GoReleaser authenticates via GITHUB_TOKEN, not the persisted git credential
 
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - name: Install the release toolchain from mise.toml
+        # Go, GoReleaser, and the cosign and syft binaries GoReleaser shells out
+        # to (`signs`, `sboms`), at the versions `just release` uses locally.
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
-          go-version-file: "go.mod"
+          version: 2026.10.19
+          install_args: go goreleaser cosign syft
           cache: false # release builds must not trust a cache poisonable from lower-privilege runs
-
-      - name: Install cosign
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-        with:
-          cosign-release: "v2.6.5"
-
-      - name: Install syft
-        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -53,10 +48,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
-        with:
-          distribution: goreleaser
-          version: "~> v2" # pin the major version; avoids surprise breakage from a new GoReleaser major
-          args: release --clean
+        run: goreleaser release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
