@@ -173,7 +173,10 @@ func collectRecipients(
 	if !githubUsernameRE.MatchString(ghUser) {
 		return nil, ghUser, fmt.Errorf("invalid GitHub username %q", ghUser)
 	}
-	keys := fetchGitHubKeys(cfg, ghUser, log)
+	keys, err := fetchGitHubKeys(cfg, ghUser, log)
+	if err != nil {
+		return nil, ghUser, fmt.Errorf("%w; refusing to encrypt without the requested recipient", err)
+	}
 	if len(keys) == 0 {
 		return nil, ghUser, fmt.Errorf(
 			"no public keys found for GitHub user %q; refusing to encrypt without the requested recipient", ghUser)
@@ -205,13 +208,19 @@ const maxKeysResponseBytes = 1 << 20 // 1 MiB
 // Results are cached under cfg.CacheDir for cfg.CacheTTLMinutes so repeated
 // encryptions do not hit the network every time. A non-positive TTL or an empty
 // cache dir disables caching. ghUser must already be validated by the caller.
-func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
+//
+// A failed fetch is returned as an error naming its cause, not as an empty key
+// list: collapsing a 404 (no such user), a timeout or a rate limit into "no
+// public keys found" sent users to ask the recipient to upload a key when the
+// username was mistyped or the network was down. An empty list with a nil error
+// means the account exists and has published no keys.
+func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) ([]string, error) {
 	cachePath := ""
 	if cfg.CacheDir != "" && cfg.CacheTTLMinutes > 0 {
 		cachePath = filepath.Join(cfg.CacheDir, ghUser+".keys")
 		if keys, ok := readKeyCache(cachePath, cfg.CacheTTLMinutes); ok {
 			log.Debug("Using cached GitHub keys", "user", ghUser)
-			return keys
+			return keys, nil
 		}
 	}
 
@@ -219,8 +228,7 @@ func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
 	// caller, so the URL is not attacker-steerable.
 	resp, err := keysHTTPClient.Get(githubKeysURL(ghUser))
 	if err != nil {
-		log.Warn("Failed to fetch GitHub keys", "user", ghUser, "error", err)
-		return nil
+		return nil, fmt.Errorf("fetching keys for GitHub user %q: %w", ghUser, err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -228,13 +236,11 @@ func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
-		log.Warn("GitHub returned non-OK status", "status", resp.StatusCode, "user", ghUser)
-		return nil
+		return nil, fmt.Errorf("fetching keys for GitHub user %q: %s", ghUser, resp.Status)
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxKeysResponseBytes))
 	if err != nil {
-		log.Warn("Failed to read GitHub keys response body", "error", err)
-		return nil
+		return nil, fmt.Errorf("reading keys for GitHub user %q: %w", ghUser, err)
 	}
 	// Only cache a response that carries keys. GitHub answers 200 with an empty
 	// body for an account that exists but has published none (404 is reserved
@@ -246,7 +252,7 @@ func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
 	if cachePath != "" && len(bytes.TrimSpace(body)) > 0 {
 		writeKeyCache(cachePath, body, log)
 	}
-	return parseKeyLines(string(body))
+	return parseKeyLines(string(body)), nil
 }
 
 // parseKeyLines splits a GitHub .keys response into non-empty, trimmed key lines.
