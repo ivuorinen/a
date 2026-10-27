@@ -5,10 +5,10 @@
 | Metric | internal/cmd | main | Command | Gated in CI |
 | --- | --- | --- | --- | --- |
 | Statement | 100% | 100% | `just coverage` | no |
-| Branch | 240/240 | 22/22 | `just branches` | no |
-| Condition | 262/262 | 28/28 | `just conditions` | **yes** |
+| Branch | 220/220 | 22/22 | `just branches` | no |
+| Condition | 242/242 | 28/28 | `just conditions` | **yes** |
 
-147 tests, no skips.
+146 tests and subtests (`=== RUN` lines of `go test -v ./...`), no skips.
 
 Statement coverage is the weakest of the three and the only one `go test`
 reports: it counts executed lines, so a compound condition like `a && b` is
