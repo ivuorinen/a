@@ -151,9 +151,8 @@ the file to force a refresh before the TTL expires.
 
 ## Development
 
-```bash
-go test ./...
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the toolchain, the checks a pull
+request must pass, and the commit message format.
 
 ## License
 
