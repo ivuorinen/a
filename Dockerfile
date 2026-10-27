@@ -1,8 +1,12 @@
 # Pinned by digest so a rebuild of a release tag reproduces the same base layer;
 # `alpine:latest` made ghcr.io/ivuorinen/a:vX.Y.Z non-reproducible, and
-# .goreleaser.yml passes --pull=true, which guaranteed the drift. Renovate keeps
-# this line current.
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+# .goreleaser.yml passes --pull=true, which guaranteed the drift.
+# The full patch version, not `3.24`: the shared Renovate preset disables
+# digest-only updates, and alpine ships a patch release by moving the `3.24` tag
+# to a new digest, so `3.24@sha256:...` sat on 3.24.1 through two patch
+# releases. With the patch in the tag, the next one is a version update Renovate
+# proposes.
+FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
 # ca-certificates is deliberately unpinned. Alpine's package index only carries
 # the current version of each package, so `ca-certificates=<version>` starts
 # failing the build the day alpine publishes a new one -- a pin that breaks on a
