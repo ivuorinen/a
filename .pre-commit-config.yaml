@@ -76,9 +76,9 @@ repos:
       - id: checkov
         # Upstream gates this hook on `files: \.tf$`; with no Terraform in this
         # repo that meant it silently never ran -- "Skipped", which reads like
-        # "Passed" in a hook summary. The Dockerfile and the workflows are the
-        # IaC surface here, so trigger on those. The hook ignores filenames
-        # (pass_filenames: false) and always scans `-d .`.
-        files: ^(Dockerfile|\.github/workflows/.*\.ya?ml)$
+        # "Passed" in a hook summary. The workflows are the IaC surface here,
+        # so trigger on those. The hook ignores filenames (pass_filenames: false)
+        # and always scans `-d .`.
+        files: ^\.github/workflows/.*\.ya?ml$
         args:
           - "--quiet"

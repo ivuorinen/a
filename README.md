@@ -24,22 +24,6 @@ sudo rpm -i a_<version>_linux_amd64.rpm
 sudo apk add --allow-untrusted ./a_<version>_linux_amd64.apk
 ```
 
-**Container** — `ghcr.io/ivuorinen/a`:
-
-```bash
-docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
-  -v "$PWD:/work" -w /work ghcr.io/ivuorinen/a encrypt message.txt
-```
-
-Both flags are needed for a bind mount. `-u` runs as you, so the container can
-write to a directory you own and the output belongs to you; the image's own uid
-(65532) cannot. `-e HOME=/tmp` gives that uid somewhere to create the config
-directory, which `a` needs on every command — pointing it at `/work` instead
-would leave `.config`, `.cache`, and `.local` in your working directory.
-
-Config is therefore not persisted between container runs. To keep it, mount a
-directory for it and set `-e XDG_CONFIG_HOME=/config`.
-
 **With Go** (requires Go 1.26+):
 
 ```bash

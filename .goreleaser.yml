@@ -133,7 +133,7 @@ release:
 
     ### Behaviour changes since v1.0.0
 
-    Hardening fixes, each replacing a path that lost data or failed open. Three
+    Hardening fixes, each replacing a path that lost data or failed open. Four
     need action on upgrade:
 
     - `encrypt` and `decrypt` refuse to replace an existing output file, which
@@ -145,6 +145,8 @@ release:
       `checksums.txt.sigstore.json`, replacing `checksums.txt.sig` and
       `checksums.txt.pem`. Verify with `cosign verify-blob --bundle`; the README
       has the full command.
+    - The container image `ghcr.io/ivuorinen/a` is no longer published; its
+      tags stay at v1.0.0. Install a release binary or Linux package instead.
 
     The rest need nothing:
 
@@ -226,29 +228,3 @@ nfpms:
         dst: /usr/share/doc/a/THIRD_PARTY_NOTICES.md
       - src: ./README.md
         dst: /usr/share/doc/a/README.md
-
-# Docker configuration (buildx-based, replaces the deprecated dockers/docker_manifests)
-dockers_v2:
-  - images:
-      - "ghcr.io/ivuorinen/a"
-    tags:
-      - "{{ .Tag }}"
-      - "v{{ .Major }}"
-      - "v{{ .Major }}.{{ .Minor }}"
-      - "latest"
-    dockerfile: Dockerfile
-    # The image redistributes the same statically linked deps as the archives,
-    # so it carries the same notices; Dockerfile COPYs it from the build context.
-    extra_files:
-      - THIRD_PARTY_NOTICES.md
-    # amd64 only, matching the pre-migration image; add linux/arm64 here for a multi-arch manifest (arm64 binaries already build)
-    platforms:
-      - linux/amd64
-    flags:
-      - "--pull=true" # always refresh the alpine base, matching the old --pull build flag
-    labels:
-      org.opencontainers.image.created: "{{ .Date }}"
-      org.opencontainers.image.title: "{{ .ProjectName }}"
-      org.opencontainers.image.revision: "{{ .FullCommit }}"
-      org.opencontainers.image.version: "{{ .Version }}"
-      org.opencontainers.image.source: "{{ .GitURL }}"
