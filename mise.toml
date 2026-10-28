@@ -44,7 +44,7 @@ staticcheck = "2026.2.2"
 # --- formatters and linters the Justfile calls directly ------------------------
 # These versions match the corresponding `rev` in .pre-commit-config.yaml, so
 # `just lint` and `just precommit` cannot disagree about the same file.
-"npm:markdownlint-cli" = "0.49.1" # pre-commit rev v0.49.1
+"npm:markdownlint-cli" = "0.50.0" # pre-commit rev v0.49.1
 yamllint = "1.38.0"               # pre-commit rev v1.38.0
 yamlfmt = "0.21.0"                # pre-commit rev v0.21.0
 shfmt = "3.14.1"                  # pre-commit rev v3.13.1-1
