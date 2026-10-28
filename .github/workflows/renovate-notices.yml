@@ -15,9 +15,10 @@ permissions: {} # GITHUB_TOKEN gets nothing; checkout and push use FIXIMUS_TOKEN
 jobs:
   notices:
     name: Regenerate third-party notices
-    # Renovate's pushes only. This job's own push arrives as fiximus and is
-    # skipped, so the workflow cannot retrigger itself.
-    if: github.actor == 'renovate[bot]'
+    # No `github.actor == 'renovate[bot]'` gate: the actor is spoofable (zizmor
+    # bot-conditions), and it never guarded FIXIMUS_TOKEN -- anyone who can push
+    # to renovate/** can read that secret from a workflow of their own. This
+    # job's own push starts one more run, which finds the file current and exits.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
