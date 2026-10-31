@@ -164,50 +164,49 @@ url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-window
 url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503258915"
 
 [[tools."github:securego/gosec"]]
-version = "2.29.0"
+version = "2.30.0"
 backend = "github:securego/gosec"
 
 [tools."github:securego/gosec"."platforms.linux-arm64"]
-checksum = "sha256:c71244ec8d37488fd479d0d26990968fee03ece48b305d8224ac0c1ebd66e87c"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520762"
+checksum = "sha256:0867994920453070a5d6a713e35921a3058473e5c3bf777fdd5a2d6f95313fda"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613510"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.linux-arm64-musl"]
-checksum = "sha256:c71244ec8d37488fd479d0d26990968fee03ece48b305d8224ac0c1ebd66e87c"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520762"
+checksum = "sha256:0867994920453070a5d6a713e35921a3058473e5c3bf777fdd5a2d6f95313fda"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613510"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.linux-x64"]
-checksum = "sha256:6431b119741c1f4a50fdfcf94e782e16b9e642afc8c7fa9b5d39d48bf3003095"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520801"
+checksum = "sha256:3fcce2c4e802ff4169217874602a7df355e9a37bcb6ffaa34b08f3d5f336cdfb"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613516"
 provenance = "github-attestations"
-provenance_verified = true
 
 [tools."github:securego/gosec"."platforms.linux-x64-musl"]
-checksum = "sha256:6431b119741c1f4a50fdfcf94e782e16b9e642afc8c7fa9b5d39d48bf3003095"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520801"
+checksum = "sha256:3fcce2c4e802ff4169217874602a7df355e9a37bcb6ffaa34b08f3d5f336cdfb"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613516"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.macos-arm64"]
-checksum = "sha256:7ab6a92c1983b7cb9df12b3ac20fb270afa43cfa12a143c354edae3109c763e5"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520761"
+checksum = "sha256:cac8c480673fc179798402b6d86efc12b6bcf11c18bcf377fda02cc55846dd97"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613518"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.macos-x64"]
-checksum = "sha256:a48152c3c009988f1750b6508316339c8b55076d24b1a958789e30ea2a21794c"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520763"
+checksum = "sha256:1b10b496954791f4b57448722f0cb93c0fa4aba24e9d286c0459dfde593e0898"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613520"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.windows-x64"]
-checksum = "sha256:67cd5ca3a80280b27102a8d6482e7124e8a47bda240412a0fcd1bb7f1be96faf"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_windows_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520799"
+checksum = "sha256:503bdfe6155584f2497ef855846b66406bce5b574ce1a9c7a7bb171aff2caa02"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_windows_amd64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613436"
 provenance = "github-attestations"
 
 [[tools.go]]
