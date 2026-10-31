@@ -5,9 +5,9 @@
 # run and CI execute the same versions.
 #
 # Two pins still live elsewhere, and the comments below say where: go.mod's
-# `toolchain` line, and the `rev` of the pre-commit hooks for the three linters
-# the Justfile also calls directly. When you bump one, bump its counterpart too
-# or the two will silently disagree.
+# `toolchain` line, and the `# frozen:` tag on the pre-commit hooks for the
+# three linters the Justfile also calls directly. When you bump one, bump its
+# counterpart too or the two will silently disagree.
 #
 # Tasks live in the Justfile (`just --list`), not here.
 
@@ -40,13 +40,14 @@ staticcheck = "2026.2.2"
 "go:github.com/rillig/gobco" = "1.3.4"
 
 # --- formatters and linters the Justfile calls directly ------------------------
-# These versions match the corresponding `rev` in .pre-commit-config.yaml, so
-# `just lint` and `just precommit` cannot disagree about the same file. shfmt,
-# shellcheck, actionlint and checkov are deliberately absent: only their
-# pre-commit hooks run them, and each hook installs its own binary.
-"npm:markdownlint-cli" = "0.50.0" # pre-commit rev v0.50.0
-yamllint = "1.38.0"               # pre-commit rev v1.38.0
-yamlfmt = "0.21.0"                # pre-commit rev v0.21.0
+# These versions match the `# frozen:` tag of the corresponding hook in
+# .pre-commit-config.yaml, so `just lint` and `just precommit` cannot disagree
+# about the same file. shfmt, shellcheck, actionlint and checkov are
+# deliberately absent: only their pre-commit hooks run them, and each hook
+# installs its own binary.
+"npm:markdownlint-cli" = "0.50.0" # pre-commit frozen: v0.50.0
+yamllint = "1.38.0"               # pre-commit frozen: v1.38.0
+yamlfmt = "0.21.0"                # pre-commit frozen: v0.21.0
 # `just format` runs goimports directly; golangci-lint also applies it as a
 # formatter, so keep this current with whatever that bundles.
 "go:golang.org/x/tools/cmd/goimports" = "0.52.0"
