@@ -86,43 +86,38 @@ url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_
 url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623232"
 
 [[tools.checkov]]
-version = "3.3.20"
+version = "3.3.30"
 backend = "aqua:bridgecrewio/checkov"
 
-[tools.checkov."platforms.linux-arm64"]
-checksum = "sha256:8cc71b2c8937584017d19b3effa1eb2936c0eeefb06e2e261f71b3a4f90e68cb"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_linux_arm64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593962942"
-
-[tools.checkov."platforms.linux-arm64-musl"]
-checksum = "sha256:8cc71b2c8937584017d19b3effa1eb2936c0eeefb06e2e261f71b3a4f90e68cb"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_linux_arm64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593962942"
-
 [tools.checkov."platforms.linux-x64"]
-checksum = "sha256:4e630ff1f25ebb5de9d7adbfe90a869e8356e25f80f4ab456d6fb273358b4e67"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_linux_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593960840"
+checksum = "sha256:c797cca544ce6cfc64b3edff2efa6e53982c0d540b6fdcf851f7fcc9bf040e7a"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_linux_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660733020"
 
 [tools.checkov."platforms.linux-x64-musl"]
-checksum = "sha256:4e630ff1f25ebb5de9d7adbfe90a869e8356e25f80f4ab456d6fb273358b4e67"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_linux_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593960840"
+checksum = "sha256:c797cca544ce6cfc64b3edff2efa6e53982c0d540b6fdcf851f7fcc9bf040e7a"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_linux_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660733020"
 
 [tools.checkov."platforms.macos-arm64"]
-checksum = "sha256:31c907f5b6f5713804cd4f380b14bb13b6f0e7cda5f1c655fccbd78422e8ea8a"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_darwin_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593961130"
+checksum = "sha256:22844857d63d9e1ab1f649ae5c807d1b5f0570eab87ac26a35637ba647590807"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_darwin_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660733163"
 
 [tools.checkov."platforms.macos-x64"]
-checksum = "sha256:31c907f5b6f5713804cd4f380b14bb13b6f0e7cda5f1c655fccbd78422e8ea8a"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_darwin_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593961130"
+checksum = "sha256:22844857d63d9e1ab1f649ae5c807d1b5f0570eab87ac26a35637ba647590807"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_darwin_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660733163"
 
 [tools.checkov."platforms.windows-x64"]
-checksum = "sha256:71ce5d764b6f1691df7d6ac8b5bcc7bf2a11f4d2dc1f32a74878e6cc9fc519b8"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_windows_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593963229"
+checksum = "sha256:9489cdea85861cb46b9e03ee08dd1c080895ebb381f1f3ebd07f29398dc647f4"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_windows_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660736798"
 
 [[tools.cosign]]
 version = "2.6.5"
