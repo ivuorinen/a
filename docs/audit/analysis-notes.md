@@ -5,10 +5,10 @@
 | Metric | internal/cmd | main | Command | Gated in CI |
 | --- | --- | --- | --- | --- |
 | Statement | 100% | 100% | `just coverage` | no |
-| Branch | 240/240 | 22/22 | `just branches` | no |
-| Condition | 262/262 | 28/28 | `just conditions` | **yes** |
+| Branch | 220/220 | 22/22 | `just branches` | no |
+| Condition | 242/242 | 28/28 | `just conditions` | **yes** |
 
-147 tests, no skips.
+146 tests and subtests (`=== RUN` lines of `go test -v ./...`), no skips.
 
 Statement coverage is the weakest of the three and the only one `go test`
 reports: it counts executed lines, so a compound condition like `a && b` is
@@ -22,8 +22,8 @@ Condition coverage is therefore the gated one, via
 The script exists rather than a bare `gobco` call because gobco exits 0 even
 when it reports gaps — a check that cannot fail — and because it panics when
 handed more than one package. gobco is pinned in mise.toml and needs no entry in
-go.mod; the script falls back to `go run` at the same version when the binary is
-not on PATH, which is how CI runs it.
+go.mod; CI installs it from there through jdx/mise-action, and the script fails
+when the binary is not on PATH.
 
 Branch coverage is not gated: condition coverage subsumes it, and `just
 branches` is there for the coarser view when hunting an unreached arm rather
@@ -77,9 +77,9 @@ for them, and two of those groups are still unreachable *in production*:
   ignoring an error return is worse. The seam makes them executable in tests; it
   does not make them reachable in practice.
 - **`tempFile` / `createTemp`** (`config_shared.go`). The `Write` and `Close`
-  guards in `SaveConfig`, `encryptFile` and `tryDecrypt` fire on a full disk or
-  an I/O error mid-write. Both are real, neither can be provoked against a file
-  in a temp directory.
+  guards in `writeAtomic` (behind `SaveConfig`, `encryptFile`, `tryDecrypt` and
+  `writeKeyCache`) fire on a full disk or an I/O error mid-write. Both are real,
+  neither can be provoked against a file in a temp directory.
 - **`userConfigDir(goos)`** (`config_shared.go`). The darwin branch is real on
   macOS and dead on every other platform. Parameterizing on `goos` makes it
   checkable from a linux runner.
@@ -109,8 +109,9 @@ critical-path functions; 10 survived at some point and all are now caught:
   table in `TestLoadConfig_RejectsGroupOtherPerms`.
 - `tryDecrypt`'s empty-path guard deleted — `TestTryDecrypt_EmptyPath` asserts
   the message, not merely that an error occurred.
-- `Completion` mapping bash to the zsh generator — `TestCompletion_ValidShells`
-  asserts a per-shell marker in the captured script.
+- `completion` accepting an unknown shell with exit 0 (cobra's default command
+  is not runnable as built) — `TestCompletionCommand`, plus a per-shell marker
+  for each generated script in `TestCLIIntegration`.
 - `SaveConfig`'s error text replaced with an unrelated string — the ten formerly
   bare `assert.Error` calls assert messages.
 - `setConfigKey` losing its `log_file_path` arm — `TestConfig_SetEachKey` is

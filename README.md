@@ -24,22 +24,6 @@ sudo rpm -i a_<version>_linux_amd64.rpm
 sudo apk add --allow-untrusted ./a_<version>_linux_amd64.apk
 ```
 
-**Container** — `ghcr.io/ivuorinen/a`:
-
-```bash
-docker run --rm -u "$(id -u):$(id -g)" -e HOME=/tmp \
-  -v "$PWD:/work" -w /work ghcr.io/ivuorinen/a encrypt message.txt
-```
-
-Both flags are needed for a bind mount. `-u` runs as you, so the container can
-write to a directory you own and the output belongs to you; the image's own uid
-(65532) cannot. `-e HOME=/tmp` gives that uid somewhere to create the config
-directory, which `a` needs on every command — pointing it at `/work` instead
-would leave `.config`, `.cache`, and `.local` in your working directory.
-
-Config is therefore not persisted between container runs. To keep it, mount a
-directory for it and set `-e XDG_CONFIG_HOME=/config`.
-
 **With Go** (requires Go 1.26+):
 
 ```bash
@@ -55,15 +39,19 @@ sudo mv a /usr/local/bin/   # optional
 
 ### Verifying a download
 
-Release checksums are keyless-signed with cosign via Sigstore:
+Release checksums are keyless-signed with cosign via Sigstore. Download
+`checksums.txt` and `checksums.txt.sigstore.json`, then:
 
 ```bash
 cosign verify-blob checksums.txt \
-  --certificate checksums.txt.pem \
-  --signature checksums.txt.sig \
+  --bundle checksums.txt.sigstore.json \
   --certificate-identity-regexp 'https://github.com/ivuorinen/a/.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
+
+Releases up to v1.0.0 ship `checksums.txt.sig` and `checksums.txt.pem` instead
+of the bundle; pass `--signature checksums.txt.sig --certificate
+checksums.txt.pem` in place of `--bundle` for those.
 
 That authenticates `checksums.txt` itself. It says nothing about the archive you
 downloaded until you check that against it:
@@ -88,7 +76,7 @@ grep a_<version>_darwin_arm64.tar.gz checksums.txt | shasum -a 256 -c -
 | `config [set\|rem\|show]` | `c` | View or change settings; bare `config` prints the commands and current config |
 | `encrypt [input] [github-user]` | `e` | Encrypt a file; output defaults to `<input>.age` |
 | `decrypt [input]` | `d` | Decrypt a file; output defaults to `<input>` without `.age` |
-| `completion [bash\|zsh\|fish]` | | Print a shell-completion script |
+| `completion [bash\|zsh\|fish\|powershell]` | | Print a shell-completion script |
 
 Add `-v` for verbose (debug) logging, and `--version` to print the build version
 (quote it in bug reports). The long flag form still works:
@@ -134,7 +122,11 @@ run and print the `chmod` to apply.
 | `github_user` | Default GitHub user whose published keys are added as recipients |
 | `default_recipients` | Public-key files or key strings always added as recipients |
 | `cache_ttl_minutes` | Lifetime of cached GitHub keys, in minutes. Default `120`, which `a config rem cache_ttl_minutes` restores; zero or negative disables caching entirely |
-| `log_file_path` | JSON log of every encrypt and decrypt, including file paths and recipients. Defaults to `$XDG_STATE_HOME/a/cli.log` (`~/.local/state/a/cli.log`), mode `0600`, rolled to `cli.log.1` past 5 MiB. Point it at `/dev/null` to keep no record |
+| `log_file_path` | JSON log of every encrypt and decrypt, including file paths and recipients (see below) |
+
+The log defaults to `$XDG_STATE_HOME/a/cli.log` (`~/.local/state/a/cli.log`),
+is created with mode `0600`, and is rolled to `cli.log.1` past 5 MiB. Point
+`log_file_path` at `/dev/null` to keep no record.
 
 Fetched GitHub keys are cached (mode `0600`) in the user cache dir
 (`~/.cache/a/<user>.keys` on Linux, under `$XDG_CACHE_HOME/a/` if that is set)
@@ -143,9 +135,8 @@ the file to force a refresh before the TTL expires.
 
 ## Development
 
-```bash
-go test ./...
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the toolchain, the checks a pull
+request must pass, and the commit message format.
 
 ## License
 

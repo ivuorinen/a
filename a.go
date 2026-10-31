@@ -162,7 +162,12 @@ func newRootCmd() *cobra.Command {
 		Use:     "a",
 		Short:   "CLI wrapper for age encryption using SSH/GitHub keys",
 		Version: buildVersion(),
-		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
+		PersistentPreRunE: func(c *cobra.Command, _ []string) error {
+			// Flags and arguments have parsed by the time this runs, so any error
+			// from here on is a runtime failure (output exists, no keys, wrong
+			// key), not a usage mistake. Printing the usage block after it buried
+			// the one line that said what went wrong.
+			c.SilenceUsage = true
 			if err := initConfigPaths(); err != nil {
 				return fmt.Errorf("error initializing paths: %w", err)
 			}
@@ -187,8 +192,16 @@ func newRootCmd() *cobra.Command {
 		cmd.ConfigCmd(cfg, saveConfig),
 		cmd.Encrypt(cfg, log),
 		cmd.Decrypt(cfg, log),
-		cmd.Completion(rootCmd),
 	)
+
+	// cobra's built-in `completion` command (bash, zsh, fish, powershell),
+	// created here rather than at Execute so it can be given a RunE. As cobra
+	// builds it the parent is not runnable, and cobra answers a non-runnable
+	// command's unknown argument with its help text and exit 0, so
+	// `a completion tcsh` read as success. Runnable, its NoArgs rejects it.
+	rootCmd.InitDefaultCompletionCmd()
+	completion, _, _ := rootCmd.Find([]string{"completion"})
+	completion.RunE = func(c *cobra.Command, _ []string) error { return c.Help() }
 
 	return rootCmd
 }

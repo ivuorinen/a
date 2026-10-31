@@ -173,7 +173,10 @@ func collectRecipients(
 	if !githubUsernameRE.MatchString(ghUser) {
 		return nil, ghUser, fmt.Errorf("invalid GitHub username %q", ghUser)
 	}
-	keys := fetchGitHubKeys(cfg, ghUser, log)
+	keys, err := fetchGitHubKeys(cfg, ghUser, log)
+	if err != nil {
+		return nil, ghUser, fmt.Errorf("%w; refusing to encrypt without the requested recipient", err)
+	}
 	if len(keys) == 0 {
 		return nil, ghUser, fmt.Errorf(
 			"no public keys found for GitHub user %q; refusing to encrypt without the requested recipient", ghUser)
@@ -205,13 +208,19 @@ const maxKeysResponseBytes = 1 << 20 // 1 MiB
 // Results are cached under cfg.CacheDir for cfg.CacheTTLMinutes so repeated
 // encryptions do not hit the network every time. A non-positive TTL or an empty
 // cache dir disables caching. ghUser must already be validated by the caller.
-func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
+//
+// A failed fetch is returned as an error naming its cause, not as an empty key
+// list: collapsing a 404 (no such user), a timeout or a rate limit into "no
+// public keys found" sent users to ask the recipient to upload a key when the
+// username was mistyped or the network was down. An empty list with a nil error
+// means the account exists and has published no keys.
+func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) ([]string, error) {
 	cachePath := ""
 	if cfg.CacheDir != "" && cfg.CacheTTLMinutes > 0 {
 		cachePath = filepath.Join(cfg.CacheDir, ghUser+".keys")
 		if keys, ok := readKeyCache(cachePath, cfg.CacheTTLMinutes); ok {
 			log.Debug("Using cached GitHub keys", "user", ghUser)
-			return keys
+			return keys, nil
 		}
 	}
 
@@ -219,8 +228,7 @@ func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
 	// caller, so the URL is not attacker-steerable.
 	resp, err := keysHTTPClient.Get(githubKeysURL(ghUser))
 	if err != nil {
-		log.Warn("Failed to fetch GitHub keys", "user", ghUser, "error", err)
-		return nil
+		return nil, fmt.Errorf("fetching keys for GitHub user %q: %w", ghUser, err)
 	}
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil {
@@ -228,13 +236,11 @@ func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
 		}
 	}()
 	if resp.StatusCode != http.StatusOK {
-		log.Warn("GitHub returned non-OK status", "status", resp.StatusCode, "user", ghUser)
-		return nil
+		return nil, fmt.Errorf("fetching keys for GitHub user %q: %s", ghUser, resp.Status)
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxKeysResponseBytes))
 	if err != nil {
-		log.Warn("Failed to read GitHub keys response body", "error", err)
-		return nil
+		return nil, fmt.Errorf("reading keys for GitHub user %q: %w", ghUser, err)
 	}
 	// Only cache a response that carries keys. GitHub answers 200 with an empty
 	// body for an account that exists but has published none (404 is reserved
@@ -246,7 +252,7 @@ func fetchGitHubKeys(cfg *Config, ghUser string, log *slog.Logger) []string {
 	if cachePath != "" && len(bytes.TrimSpace(body)) > 0 {
 		writeKeyCache(cachePath, body, log)
 	}
-	return parseKeyLines(string(body))
+	return parseKeyLines(string(body)), nil
 }
 
 // parseKeyLines splits a GitHub .keys response into non-empty, trimmed key lines.
@@ -283,8 +289,13 @@ func readKeyCache(cachePath string, ttlMinutes int) ([]string, bool) {
 }
 
 // writeKeyCache stores the raw .keys response; failures are non-fatal (best effort).
+//
+// Through writeAtomic rather than os.WriteFile: readKeyCache takes any file
+// younger than the TTL as a hit, and os.WriteFile truncates in place, so a
+// concurrent encrypt to the same user could read the cache empty (and fail) or
+// half-written (and encrypt to a subset of the user's keys).
 func writeKeyCache(cachePath string, body []byte, log *slog.Logger) {
-	if err := os.WriteFile(cachePath, body, 0o600); err != nil {
+	if err := writeAtomic(cachePath, ".keys-*", writeBytes(body)); err != nil {
 		log.Warn("Failed to cache GitHub keys", "path", cachePath, "error", err)
 	}
 }
@@ -346,11 +357,10 @@ func parseRecipient(s string) (age.Recipient, error) {
 // encryptFile encrypts input to output for the given recipients, writing the age
 // file with 0600 permissions.
 //
-// It writes to a temp file in the target directory and renames onto output only
-// after encryption fully succeeds (mirrors tryDecrypt): a failed or partial
+// It writes through writeAtomic (as tryDecrypt does): a failed or partial
 // encryption never truncates a pre-existing file or leaves a half-written .age at
 // the target path.
-func encryptFile(input, output string, recipients []age.Recipient) (err error) {
+func encryptFile(input, output string, recipients []age.Recipient) error {
 	// #nosec G304 -- input path is a validated CLI flag/argument
 	in, err := os.Open(input)
 	if err != nil {
@@ -358,37 +368,19 @@ func encryptFile(input, output string, recipients []age.Recipient) (err error) {
 	}
 	defer func() { _ = in.Close() }()
 
-	// createTemp wraps os.CreateTemp, which creates the file with 0600.
-	tmp, err := createTemp(filepath.Dir(output), ".a-encrypt-*")
-	if err != nil {
-		return fmt.Errorf("creating temp output: %w", err)
-	}
-	tmpName := tmp.Name()
-	defer func() {
+	return writeAtomic(output, ".a-encrypt-*", func(tmp io.Writer) error {
+		w, err := age.Encrypt(tmp, recipients...)
 		if err != nil {
-			_ = os.Remove(tmpName)
+			return fmt.Errorf("initializing encryption: %w", err)
 		}
-	}()
-
-	w, err := age.Encrypt(tmp, recipients...)
-	if err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("initializing encryption: %w", err)
-	}
-	if _, err = io.Copy(w, in); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("writing ciphertext: %w", err)
-	}
-	// Close the age writer first (flushes the final chunk), then the temp file.
-	if err = w.Close(); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("finalizing encryption: %w", err)
-	}
-	if err = tmp.Close(); err != nil {
-		return fmt.Errorf("closing temp output: %w", err)
-	}
-	if err = os.Rename(tmpName, output); err != nil {
-		return fmt.Errorf("finalizing output: %w", err)
-	}
-	return nil
+		if _, err := io.Copy(w, in); err != nil {
+			return fmt.Errorf("writing ciphertext: %w", err)
+		}
+		// The age writer buffers the last chunk; only Close flushes it, and it
+		// must succeed before writeAtomic closes and renames the temp file.
+		if err := w.Close(); err != nil {
+			return fmt.Errorf("finalizing encryption: %w", err)
+		}
+		return nil
+	})
 }

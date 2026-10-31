@@ -46,168 +46,130 @@ url = "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_
 url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/384924919"
 provenance = "github-attestations"
 
-[[tools."aqua:securego/gosec"]]
-version = "2.28.0"
-backend = "aqua:securego/gosec"
-
-[tools."aqua:securego/gosec"."platforms.linux-arm64"]
-checksum = "sha256:63259681b6e4b9e7a24d4e187b485e75d3844d28d512b0c97dc831e51d374720"
-url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623278"
-
-[tools."aqua:securego/gosec"."platforms.linux-arm64-musl"]
-checksum = "sha256:63259681b6e4b9e7a24d4e187b485e75d3844d28d512b0c97dc831e51d374720"
-url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623278"
-
-[tools."aqua:securego/gosec"."platforms.linux-x64"]
-checksum = "sha256:d7882e505b1ff345d458bf0e893eec8019bc849f861ad73a212869540dd505ff"
-url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623275"
-
-[tools."aqua:securego/gosec"."platforms.linux-x64-musl"]
-checksum = "sha256:d7882e505b1ff345d458bf0e893eec8019bc849f861ad73a212869540dd505ff"
-url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623275"
-
-[tools."aqua:securego/gosec"."platforms.macos-arm64"]
-checksum = "sha256:6c4993a0ab5e3007d66c87cbcb4e3948f8000971f8eeaf3ac269cbc87a603ba4"
-url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623280"
-
-[tools."aqua:securego/gosec"."platforms.macos-x64"]
-checksum = "sha256:ad23af3a6bfef8112a2da386acd61ede1374c8d022c06d8ef130ccf9748311d4"
-url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623279"
-
-[tools."aqua:securego/gosec"."platforms.windows-x64"]
-checksum = "sha256:12216d53e57b4dbe1ce77acd7422e338ae5e76eaafe37e9a845d309256b14729"
-url = "https://github.com/securego/gosec/releases/download/v2.28.0/gosec_2.28.0_windows_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/476623232"
-
 [[tools.checkov]]
-version = "3.3.20"
+version = "3.3.30"
 backend = "aqua:bridgecrewio/checkov"
 
-[tools.checkov."platforms.linux-arm64"]
-checksum = "sha256:8cc71b2c8937584017d19b3effa1eb2936c0eeefb06e2e261f71b3a4f90e68cb"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_linux_arm64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593962942"
-
-[tools.checkov."platforms.linux-arm64-musl"]
-checksum = "sha256:8cc71b2c8937584017d19b3effa1eb2936c0eeefb06e2e261f71b3a4f90e68cb"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_linux_arm64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593962942"
-
 [tools.checkov."platforms.linux-x64"]
-checksum = "sha256:4e630ff1f25ebb5de9d7adbfe90a869e8356e25f80f4ab456d6fb273358b4e67"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_linux_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593960840"
+checksum = "sha256:c797cca544ce6cfc64b3edff2efa6e53982c0d540b6fdcf851f7fcc9bf040e7a"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_linux_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660733020"
 
 [tools.checkov."platforms.linux-x64-musl"]
-checksum = "sha256:4e630ff1f25ebb5de9d7adbfe90a869e8356e25f80f4ab456d6fb273358b4e67"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_linux_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593960840"
+checksum = "sha256:c797cca544ce6cfc64b3edff2efa6e53982c0d540b6fdcf851f7fcc9bf040e7a"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_linux_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660733020"
 
 [tools.checkov."platforms.macos-arm64"]
-checksum = "sha256:31c907f5b6f5713804cd4f380b14bb13b6f0e7cda5f1c655fccbd78422e8ea8a"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_darwin_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593961130"
+checksum = "sha256:22844857d63d9e1ab1f649ae5c807d1b5f0570eab87ac26a35637ba647590807"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_darwin_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660733163"
 
 [tools.checkov."platforms.macos-x64"]
-checksum = "sha256:31c907f5b6f5713804cd4f380b14bb13b6f0e7cda5f1c655fccbd78422e8ea8a"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_darwin_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593961130"
+checksum = "sha256:22844857d63d9e1ab1f649ae5c807d1b5f0570eab87ac26a35637ba647590807"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_darwin_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660733163"
 
 [tools.checkov."platforms.windows-x64"]
-checksum = "sha256:71ce5d764b6f1691df7d6ac8b5bcc7bf2a11f4d2dc1f32a74878e6cc9fc519b8"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.20/checkov_windows_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/593963229"
+checksum = "sha256:9489cdea85861cb46b9e03ee08dd1c080895ebb381f1f3ebd07f29398dc647f4"
+checksum_source = "mise-versions"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.3.30/checkov_windows_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/660736798"
 
 [[tools.cosign]]
-version = "2.6.5"
+version = "3.1.4"
 backend = "aqua:sigstore/cosign"
 
 [tools.cosign."platforms.linux-arm64"]
-checksum = "sha256:426193b4c5da4d4d643e822f48fe0cc8a476ca1782a272704831f5a0cef716d7"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-linux-arm64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503259219"
+checksum = "sha256:ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660068106"
+provenance = "cosign"
 
 [tools.cosign."platforms.linux-arm64-musl"]
-checksum = "sha256:426193b4c5da4d4d643e822f48fe0cc8a476ca1782a272704831f5a0cef716d7"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-linux-arm64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503259219"
+checksum = "sha256:ade83b7aac62e131cacfe96d958948b2150cc9efec46a570a2649b8e27dedad2"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660068106"
+provenance = "cosign"
 
 [tools.cosign."platforms.linux-x64"]
-checksum = "sha256:c3b4f5410e608af03a5eb0aaac84a4313d8da131248e08ff1759ac70c79d1644"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-linux-amd64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503259054"
+checksum = "sha256:424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069428"
+provenance = "cosign"
 
 [tools.cosign."platforms.linux-x64-musl"]
-checksum = "sha256:c3b4f5410e608af03a5eb0aaac84a4313d8da131248e08ff1759ac70c79d1644"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-linux-amd64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503259054"
+checksum = "sha256:424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069428"
+provenance = "cosign"
 
 [tools.cosign."platforms.macos-arm64"]
-checksum = "sha256:4d41cc18f0563907c0c785b51db76e1d1af10db4422b605ba876b1758e1771ab"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-darwin-arm64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503258807"
+checksum = "sha256:9f9b8cd557cf2e5b3df3373a00baa005a86b02391e3e06dd0ce37b3a1533d3a4"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-darwin-arm64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069257"
+provenance = "cosign"
 
 [tools.cosign."platforms.macos-x64"]
-checksum = "sha256:0f8a1a70c81de9740a2b62e91307ff396ce54e7dd80568d42411bb2d9d44269c"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-darwin-amd64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503258707"
+checksum = "sha256:9d1e4abe2b6be279ed0d2ff706fde1ccd738747c834e3e6d44039c238867334f"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-darwin-amd64"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660069002"
+provenance = "cosign"
 
 [tools.cosign."platforms.windows-x64"]
-checksum = "sha256:19ec346d0050f59ffad9694da97ef9704be34ec60ddc41c5f1d16d8619385825"
-url = "https://github.com/sigstore/cosign/releases/download/v2.6.5/cosign-windows-amd64.exe"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503258915"
+checksum = "sha256:cbe953787074611f1334cbf37dc1cf953995bb8c45398eb4fc7bb781d29c1f2a"
+url = "https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-windows-amd64.exe"
+url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/660070803"
+provenance = "cosign"
 
 [[tools."github:securego/gosec"]]
-version = "2.29.0"
+version = "2.30.0"
 backend = "github:securego/gosec"
 
 [tools."github:securego/gosec"."platforms.linux-arm64"]
-checksum = "sha256:c71244ec8d37488fd479d0d26990968fee03ece48b305d8224ac0c1ebd66e87c"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520762"
+checksum = "sha256:0867994920453070a5d6a713e35921a3058473e5c3bf777fdd5a2d6f95313fda"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613510"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.linux-arm64-musl"]
-checksum = "sha256:c71244ec8d37488fd479d0d26990968fee03ece48b305d8224ac0c1ebd66e87c"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520762"
+checksum = "sha256:0867994920453070a5d6a713e35921a3058473e5c3bf777fdd5a2d6f95313fda"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613510"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.linux-x64"]
-checksum = "sha256:6431b119741c1f4a50fdfcf94e782e16b9e642afc8c7fa9b5d39d48bf3003095"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520801"
+checksum = "sha256:3fcce2c4e802ff4169217874602a7df355e9a37bcb6ffaa34b08f3d5f336cdfb"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613516"
 provenance = "github-attestations"
-provenance_verified = true
 
 [tools."github:securego/gosec"."platforms.linux-x64-musl"]
-checksum = "sha256:6431b119741c1f4a50fdfcf94e782e16b9e642afc8c7fa9b5d39d48bf3003095"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520801"
+checksum = "sha256:3fcce2c4e802ff4169217874602a7df355e9a37bcb6ffaa34b08f3d5f336cdfb"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613516"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.macos-arm64"]
-checksum = "sha256:7ab6a92c1983b7cb9df12b3ac20fb270afa43cfa12a143c354edae3109c763e5"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520761"
+checksum = "sha256:cac8c480673fc179798402b6d86efc12b6bcf11c18bcf377fda02cc55846dd97"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613518"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.macos-x64"]
-checksum = "sha256:a48152c3c009988f1750b6508316339c8b55076d24b1a958789e30ea2a21794c"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520763"
+checksum = "sha256:1b10b496954791f4b57448722f0cb93c0fa4aba24e9d286c0459dfde593e0898"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_darwin_amd64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613520"
 provenance = "github-attestations"
 
 [tools."github:securego/gosec"."platforms.windows-x64"]
-checksum = "sha256:67cd5ca3a80280b27102a8d6482e7124e8a47bda240412a0fcd1bb7f1be96faf"
-url = "https://github.com/securego/gosec/releases/download/v2.29.0/gosec_2.29.0_windows_amd64.tar.gz"
-url_api = "https://api.github.com/repos/securego/gosec/releases/assets/530520799"
+checksum = "sha256:503bdfe6155584f2497ef855846b66406bce5b574ce1a9c7a7bb171aff2caa02"
+url = "https://github.com/securego/gosec/releases/download/v2.30.0/gosec_2.30.0_windows_amd64.tar.gz"
+url_api = "https://api.github.com/repos/securego/gosec/releases/assets/668613436"
 provenance = "github-attestations"
 
 [[tools.go]]
@@ -247,11 +209,11 @@ version = "1.3.4"
 backend = "go:github.com/rillig/gobco"
 
 [[tools."go:golang.org/x/tools/cmd/goimports"]]
-version = "0.49.0"
+version = "0.52.0"
 backend = "go:golang.org/x/tools/cmd/goimports"
 
 [[tools."go:golang.org/x/vuln/cmd/govulncheck"]]
-version = "1.7.0"
+version = "1.9.0"
 backend = "go:golang.org/x/vuln/cmd/govulncheck"
 
 [[tools.golangci-lint]]
@@ -301,49 +263,49 @@ url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/6
 provenance = "github-attestations"
 
 [[tools.goreleaser]]
-version = "2.18.3"
+version = "2.19.0"
 backend = "aqua:goreleaser/goreleaser"
 
 [tools.goreleaser."platforms.linux-arm64"]
-checksum = "sha256:fa7011a7f8de3b504326b8552cf21c708ed3089519b01d372da32ef4e8d298d7"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.18.3/goreleaser_Linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/623773317"
+checksum = "sha256:ef33741b684c9f62d6a21e7a3c8b051f139ea7b1d301693b67cc819c46226d53"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/667102792"
 provenance = "github-attestations"
 
 [tools.goreleaser."platforms.linux-arm64-musl"]
-checksum = "sha256:fa7011a7f8de3b504326b8552cf21c708ed3089519b01d372da32ef4e8d298d7"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.18.3/goreleaser_Linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/623773317"
+checksum = "sha256:ef33741b684c9f62d6a21e7a3c8b051f139ea7b1d301693b67cc819c46226d53"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/667102792"
 provenance = "github-attestations"
 
 [tools.goreleaser."platforms.linux-x64"]
-checksum = "sha256:b8dee4728bca1aba0d71a832a17cd0a3799f75372878e7ffa36aef2343bce0bc"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.18.3/goreleaser_Linux_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/623773318"
+checksum = "sha256:ebc3194ad1d1b1787614405285a0039665cd4c5bd3305215a1b201600f90630b"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/667102791"
 provenance = "github-attestations"
 
 [tools.goreleaser."platforms.linux-x64-musl"]
-checksum = "sha256:b8dee4728bca1aba0d71a832a17cd0a3799f75372878e7ffa36aef2343bce0bc"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.18.3/goreleaser_Linux_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/623773318"
+checksum = "sha256:ebc3194ad1d1b1787614405285a0039665cd4c5bd3305215a1b201600f90630b"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/667102791"
 provenance = "github-attestations"
 
 [tools.goreleaser."platforms.macos-arm64"]
-checksum = "sha256:156f425536d40ce282b79c637ca00eb943792de6ad1e2482a4b21cc4b5421f4f"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.18.3/goreleaser_Darwin_all.tar.gz"
-url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/623773494"
+checksum = "sha256:21adceff6e676ef63497fc129983f8c454e5a46ec0125b905cba0f83e7879722"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Darwin_all.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/667102941"
 provenance = "github-attestations"
 
 [tools.goreleaser."platforms.macos-x64"]
-checksum = "sha256:156f425536d40ce282b79c637ca00eb943792de6ad1e2482a4b21cc4b5421f4f"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.18.3/goreleaser_Darwin_all.tar.gz"
-url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/623773494"
+checksum = "sha256:21adceff6e676ef63497fc129983f8c454e5a46ec0125b905cba0f83e7879722"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Darwin_all.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/667102941"
 provenance = "github-attestations"
 
 [tools.goreleaser."platforms.windows-x64"]
-checksum = "sha256:5e7455df2accbfe69416cf9ccbc6aefe9abd2543525d5d6da24426d827aa8171"
-url = "https://github.com/goreleaser/goreleaser/releases/download/v2.18.3/goreleaser_Windows_x86_64.zip"
-url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/623773506"
+checksum = "sha256:67807490e909a37f58ef40b67601896d8d4da2411c9839221dae55732c243fe9"
+url = "https://github.com/goreleaser/goreleaser/releases/download/v2.19.0/goreleaser_Windows_x86_64.zip"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser/releases/assets/667103008"
 provenance = "github-attestations"
 
 [[tools.just]]
@@ -386,53 +348,53 @@ url = "https://github.com/casey/just/releases/download/1.59.0/just-1.59.0-x86_64
 url_api = "https://api.github.com/repos/casey/just/releases/assets/643131303"
 
 [[tools."npm:markdownlint-cli"]]
-version = "0.49.1"
+version = "0.50.0"
 backend = "npm:markdownlint-cli"
 
 [[tools.prek]]
-version = "0.5.6"
+version = "0.5.7"
 backend = "aqua:j178/prek"
 
 [tools.prek."platforms.linux-arm64"]
-checksum = "sha256:5c8ec3feaaf50e5c0c5e45da8601fc8064736c1bf2bbad40796dc51b1f69e7b2"
-url = "https://github.com/j178/prek/releases/download/v0.5.6/prek-aarch64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/655367916"
+checksum = "sha256:98bdb31002ca42b61f4f6c746b2de351aee4e1f29c95f8dec8ec3b9a62929c1e"
+url = "https://github.com/j178/prek/releases/download/v0.5.7/prek-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/660929498"
 provenance = "github-attestations"
 
 [tools.prek."platforms.linux-arm64-musl"]
-checksum = "sha256:171e80c69cf924b9a272496e0bd284b5e723fd6b6507e1b399fa7664c25a4a01"
-url = "https://github.com/j178/prek/releases/download/v0.5.6/prek-aarch64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/655367924"
+checksum = "sha256:022ddbaef649d83ab7e0cfde13400612b896b04cce338623205525560d47bcf6"
+url = "https://github.com/j178/prek/releases/download/v0.5.7/prek-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/660929502"
 provenance = "github-attestations"
 
 [tools.prek."platforms.linux-x64"]
-checksum = "sha256:b0c1a9fdaf0f379c1c2809481a1e1560a4a233777ecd3c38d3e7459d77a59398"
-url = "https://github.com/j178/prek/releases/download/v0.5.6/prek-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/655367968"
+checksum = "sha256:e238e5a6b4e384e8d18f33d3c3b1a329be0e1237f77ac6e021e641ddd3a2bab6"
+url = "https://github.com/j178/prek/releases/download/v0.5.7/prek-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/660929556"
 provenance = "github-attestations"
 
 [tools.prek."platforms.linux-x64-musl"]
-checksum = "sha256:acb5e535d8641afbc66b2ac73a3961903919f6c59507fd17394ac2a334bf5f31"
-url = "https://github.com/j178/prek/releases/download/v0.5.6/prek-x86_64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/655367970"
+checksum = "sha256:25d6a0316125127aed3ad7010128884d7e7243c4ac06f084218b98dc20020ca9"
+url = "https://github.com/j178/prek/releases/download/v0.5.7/prek-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/660929599"
 provenance = "github-attestations"
 
 [tools.prek."platforms.macos-arm64"]
-checksum = "sha256:c76d0798742ba199f0723ae790732fea78978bd88a7d6b9c6962b9cdcbc4f5b1"
-url = "https://github.com/j178/prek/releases/download/v0.5.6/prek-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/655367897"
+checksum = "sha256:800c5b9c8239045bbdf4201957dd4175135e216e838c40a6ec1904ff18ebaf2c"
+url = "https://github.com/j178/prek/releases/download/v0.5.7/prek-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/660929480"
 provenance = "github-attestations"
 
 [tools.prek."platforms.macos-x64"]
-checksum = "sha256:c85000c3b8cbd1ea5f26c265d168306be93422c4c332d9d5222835286150918a"
-url = "https://github.com/j178/prek/releases/download/v0.5.6/prek-x86_64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/655367952"
+checksum = "sha256:12b65c6685fc44ff9130c0bf5dcb01be69c0c81d9a0709553fd369c3b2010815"
+url = "https://github.com/j178/prek/releases/download/v0.5.7/prek-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/660929524"
 provenance = "github-attestations"
 
 [tools.prek."platforms.windows-x64"]
-checksum = "sha256:abe28ade56f9c76b5299f0e4e406888e7e34b56effb53a3aeab72e9f3f762668"
-url = "https://github.com/j178/prek/releases/download/v0.5.6/prek-x86_64-pc-windows-msvc.zip"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/655367956"
+checksum = "sha256:50ccc606e19965585807c0a8be99da82eb4237c7c9df2539e5a83704d1f16a36"
+url = "https://github.com/j178/prek/releases/download/v0.5.7/prek-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/660929530"
 provenance = "github-attestations"
 
 [[tools.shellcheck]]
@@ -639,4 +601,4 @@ url_api = "https://api.github.com/repos/google/yamlfmt/releases/assets/336650206
 
 [[tools.yamllint]]
 version = "1.38.0"
-backend = "pipx:yamllint"
+backend = "pypi:yamllint"

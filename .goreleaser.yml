@@ -8,10 +8,9 @@ version: 2
 # Set the project name
 project_name: a
 
-# Clean dist folder before build
-before:
-  hooks:
-    - go mod tidy
+# No `before: go mod tidy` hook: it rewrote go.mod/go.sum after checkout, so a
+# release could link a module graph the tag does not contain and CI never
+# tested. `go build` defaults to -mod=readonly and fails on an incomplete go.mod.
 
 # Build configuration
 builds:
@@ -90,13 +89,14 @@ checksum:
 
 # Keyless-sign the checksums file with cosign via Sigstore (Fulcio + Rekor). The
 # OIDC identity comes from the workflow's id-token; no long-lived keys are stored.
+# cosign v3 writes certificate, signature and transparency-log proof into one
+# Sigstore bundle; releases up to v1.0.0 shipped separate .sig and .pem files.
 signs:
   - cmd: cosign
-    certificate: "${artifact}.pem"
+    signature: "${artifact}.sigstore.json"
     args:
       - sign-blob
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
+      - "--bundle=${signature}"
       - "${artifact}"
       - "--yes"
     artifacts: checksum
@@ -133,7 +133,7 @@ release:
 
     ### Behaviour changes since v1.0.0
 
-    Hardening fixes, each replacing a path that lost data or failed open. Two
+    Hardening fixes, each replacing a path that lost data or failed open. Four
     need action on upgrade:
 
     - `encrypt` and `decrypt` refuse to replace an existing output file, which
@@ -141,6 +141,12 @@ release:
       silently, with exit 0. Pass `-f` / `--force` where that was intended.
     - A config file that is group- or other-accessible is refused, and `a`
       prints the `chmod` to apply. Existing configs may need it once.
+    - `checksums.txt` is signed as a Sigstore bundle,
+      `checksums.txt.sigstore.json`, replacing `checksums.txt.sig` and
+      `checksums.txt.pem`. Verify with `cosign verify-blob --bundle`; the README
+      has the full command.
+    - The container image `ghcr.io/ivuorinen/a` is no longer published; its
+      tags stay at v1.0.0. Install a release binary or Linux package instead.
 
     The rest need nothing:
 
@@ -178,9 +184,10 @@ changelog:
   use: github
   filters:
     exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
+      # Optional scope and `!`: every Renovate commit is scoped (`chore(deps):`,
+      # `chore(actions):`, `chore(tooling):`), and an unscoped `^chore:` let all
+      # of them through. `fix(deps):` stays in on purpose; it ships in the binary.
+      - '^(docs|test|chore)(\([^)]*\))?!?:'
       - "typo"
       - "Merge pull request"
       - "Merge branch"
@@ -221,29 +228,3 @@ nfpms:
         dst: /usr/share/doc/a/THIRD_PARTY_NOTICES.md
       - src: ./README.md
         dst: /usr/share/doc/a/README.md
-
-# Docker configuration (buildx-based, replaces the deprecated dockers/docker_manifests)
-dockers_v2:
-  - images:
-      - "ghcr.io/ivuorinen/a"
-    tags:
-      - "{{ .Tag }}"
-      - "v{{ .Major }}"
-      - "v{{ .Major }}.{{ .Minor }}"
-      - "latest"
-    dockerfile: Dockerfile
-    # The image redistributes the same statically linked deps as the archives,
-    # so it carries the same notices; Dockerfile COPYs it from the build context.
-    extra_files:
-      - THIRD_PARTY_NOTICES.md
-    # amd64 only, matching the pre-migration image; add linux/arm64 here for a multi-arch manifest (arm64 binaries already build)
-    platforms:
-      - linux/amd64
-    flags:
-      - "--pull=true" # always refresh the alpine base, matching the old --pull build flag
-    labels:
-      org.opencontainers.image.created: "{{ .Date }}"
-      org.opencontainers.image.title: "{{ .ProjectName }}"
-      org.opencontainers.image.revision: "{{ .FullCommit }}"
-      org.opencontainers.image.version: "{{ .Version }}"
-      org.opencontainers.image.source: "{{ .GitURL }}"
