@@ -25,7 +25,7 @@ cd "$(dirname "$0")/.."
 # mise.toml pins gobco and CI installs it from there, so the binary is always on
 # PATH where this runs. A missing one is a setup error, not a pass.
 if ! command -v gobco >/dev/null 2>&1; then
-  echo "::error::gobco not on PATH; run 'mise install'" >&2
+  echo "::error::gobco not on PATH; activate mise after 'mise install', or run 'mise exec -- just conditions'" >&2
   exit 1
 fi
 

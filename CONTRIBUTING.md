@@ -14,6 +14,10 @@ mise install
 prek install
 ```
 
+The tools are on `PATH` only while mise is active in your shell (`mise activate`,
+or mise's shims directory on `PATH`). Without that, prefix commands with
+`mise exec --`, as in `mise exec -- prek install`.
+
 Tasks live in the `Justfile`; `just --list` shows them all.
 
 ## Before opening a pull request
