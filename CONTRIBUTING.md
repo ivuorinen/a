@@ -11,12 +11,12 @@ hook's `# frozen:` tag must match the `mise.toml` version; the comments in
 
 ```bash
 mise install
-prek install
+mise exec -- prek install
 ```
 
 The tools are on `PATH` only while mise is active in your shell (`mise activate`,
 or mise's shims directory on `PATH`). Without that, prefix commands with
-`mise exec --`, as in `mise exec -- prek install`.
+`mise exec --`, as the hook install above does.
 
 Tasks live in the `Justfile`; `just --list` shows them all.
 
