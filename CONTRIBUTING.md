@@ -2,8 +2,12 @@
 
 ## Setup
 
-Every tool this repository runs is pinned in `mise.toml`, and CI installs the
-same versions from it. Install them, then the git hooks:
+`mise.toml` pins the tools the `Justfile` and CI run, and CI installs the same
+versions from it. Two other files hold pins: `go.mod`'s `toolchain` line, which
+must match the `go` entry in `mise.toml`, and `.pre-commit-config.yaml`, which
+pins every hook by commit SHA. For markdownlint-cli, yamllint and yamlfmt, the
+hook's `# frozen:` tag must match the `mise.toml` version; the comments in
+`mise.toml` say which pins move together. Install the tools, then the git hooks:
 
 ```bash
 mise install
