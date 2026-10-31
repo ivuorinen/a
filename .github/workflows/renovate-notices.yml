@@ -57,8 +57,12 @@ jobs:
           git add THIRD_PARTY_NOTICES.md
           git commit -m "chore(deps): regenerate THIRD_PARTY_NOTICES.md"
           # The header actions/checkout would have persisted, for this push only.
-          # Masked because Actions masks the raw secret, not its base64 form.
+          # Masked because Actions masks the raw secret, not its base64 form, and
+          # passed through git's environment config rather than `git -c`, so it
+          # stays out of the process arguments any user on the runner can list.
           auth=$(printf 'x-access-token:%s' "$FIXIMUS_TOKEN" | base64 -w0)
           echo "::add-mask::${auth}"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
-            push origin "HEAD:${GITHUB_REF}"
+          GIT_CONFIG_COUNT=1 \
+            GIT_CONFIG_KEY_0=http.https://github.com/.extraheader \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic ${auth}" \
+            git push origin "HEAD:${GITHUB_REF}"
