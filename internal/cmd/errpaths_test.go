@@ -84,14 +84,6 @@ func TestApplyConfigDefaults_MkdirError(t *testing.T) {
 	assert.ErrorContains(t, applyConfigDefaults(&Config{}), "not a directory")
 }
 
-// Missing config file + a HOME that blocks ~/.state: the defaults error must
-// surface from the not-exist branch too.
-func TestLoadConfig_MissingDefaultsError(t *testing.T) {
-	fileHome(t)
-	_, err := LoadConfig(filepath.Join(t.TempDir(), "nope.yaml"))
-	assert.ErrorContains(t, err, "not a directory")
-}
-
 func TestReadKeyCache_Unreadable(t *testing.T) {
 	// A directory at cachePath: Stat succeeds and is fresh, but ReadFile fails (EISDIR).
 	dir := filepath.Join(t.TempDir(), "user.keys")

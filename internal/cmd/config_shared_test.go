@@ -32,12 +32,12 @@ func TestApplyConfigDefaults(t *testing.T) {
 	assert.Equal(t, "/custom.log", cfg2.LogFilePath)
 }
 
-func TestLoadConfig_MissingReturnsDefaults(t *testing.T) {
-	t.Setenv("HOME", t.TempDir())
-	t.Setenv("XDG_STATE_HOME", "") // else the default log path escapes to the real home
-	cfg, err := LoadConfig(filepath.Join(t.TempDir(), "nope.yaml"))
-	require.NoError(t, err)
-	assert.NotEmpty(t, cfg.LogFilePath)
+// InitConfigPaths writes the default config before LoadConfig runs, so a missing
+// file is an error rather than a second, different set of defaults.
+func TestLoadConfig_MissingIsAnError(t *testing.T) {
+	_, err := LoadConfig(filepath.Join(t.TempDir(), "nope.yaml"))
+	assert.ErrorContains(t, err, "could not stat config file")
+	assert.ErrorIs(t, err, os.ErrNotExist)
 }
 
 // Each mode isolates one triplet. A single 0644 case sets bits in both, so it

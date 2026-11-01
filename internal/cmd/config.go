@@ -1,3 +1,4 @@
+// Package cmd provides CLI command constructors for the age wrapper.
 package cmd
 
 import (

@@ -306,7 +306,8 @@ func TestFetchGitHubKeys_BodyCloseErrorIsNonFatal(t *testing.T) {
 	keysHTTPClient = &http.Client{Transport: stubTransport{body: "ssh-ed25519 CLOSEFAIL\n"}}
 	t.Cleanup(func() { keysHTTPClient = orig })
 
-	keys := fetchGitHubKeys(&Config{}, "octocat", discardLogger())
+	keys, err := fetchGitHubKeys(&Config{}, "octocat", discardLogger())
+	require.NoError(t, err)
 	assert.Equal(t, []string{"ssh-ed25519 CLOSEFAIL"}, keys,
 		"a failed body close must not lose keys that were already read")
 }

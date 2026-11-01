@@ -34,7 +34,8 @@ func TestFetchGitHubKeys_NetworkOK(t *testing.T) {
 
 	dir := t.TempDir()
 	cfg := &Config{CacheDir: dir, CacheTTLMinutes: 60}
-	keys := fetchGitHubKeys(cfg, "good", discardLogger())
+	keys, err := fetchGitHubKeys(cfg, "good", discardLogger())
+	require.NoError(t, err)
 	assert.Equal(t, []string{"ssh-ed25519 NETKEY"}, keys)
 
 	// The successful response must have been written to the cache.
@@ -47,7 +48,11 @@ func TestFetchGitHubKeys_NotFound(t *testing.T) {
 	withGitHubKeysServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
-	assert.Nil(t, fetchGitHubKeys(&Config{}, "missing", discardLogger()))
+	// A 404 means the account does not exist, which the caller must be able to
+	// tell apart from an account with no published keys.
+	keys, err := fetchGitHubKeys(&Config{}, "missing", discardLogger())
+	assert.Nil(t, keys)
+	assert.ErrorContains(t, err, `GitHub user "missing": 404 Not Found`)
 }
 
 // TestFetchGitHubKeys_EmptyBodyIsNotCached pins the fix for a stuck-cache bug:
@@ -66,12 +71,14 @@ func TestFetchGitHubKeys_EmptyBodyIsNotCached(t *testing.T) {
 	dir := t.TempDir()
 	cfg := &Config{CacheDir: dir, CacheTTLMinutes: 120}
 
-	assert.Nil(t, fetchGitHubKeys(cfg, "user", discardLogger()),
-		"an account with no published keys yields none")
+	keys, err := fetchGitHubKeys(cfg, "user", discardLogger())
+	require.NoError(t, err, "a 200 with no keys is not a failed fetch")
+	assert.Nil(t, keys, "an account with no published keys yields none")
 	assert.NoFileExists(t, filepath.Join(dir, "user.keys"),
 		"an empty response must not be cached")
-	assert.Equal(t, []string{"ssh-ed25519 UPLOADED"},
-		fetchGitHubKeys(cfg, "user", discardLogger()),
+	keys, err = fetchGitHubKeys(cfg, "user", discardLogger())
+	require.NoError(t, err)
+	assert.Equal(t, []string{"ssh-ed25519 UPLOADED"}, keys,
 		"a key uploaded after the empty response must be visible immediately")
 }
 
@@ -92,8 +99,11 @@ func TestFetchGitHubKeys_NoCacheDirDoesNotWriteToCwd(t *testing.T) {
 	t.Chdir(wd)
 
 	cfg := &Config{CacheDir: "", CacheTTLMinutes: 60} // TTL is positive; only CacheDir is missing
-	assert.Equal(t, []string{"ssh-ed25519 NODIR"}, fetchGitHubKeys(cfg, "octocat", discardLogger()))
-	assert.Equal(t, []string{"ssh-ed25519 NODIR"}, fetchGitHubKeys(cfg, "octocat", discardLogger()))
+	for range 2 {
+		keys, err := fetchGitHubKeys(cfg, "octocat", discardLogger())
+		require.NoError(t, err)
+		assert.Equal(t, []string{"ssh-ed25519 NODIR"}, keys)
+	}
 
 	assert.Equal(t, 2, calls, "with no cache directory every call must hit the network")
 	entries, err := os.ReadDir(wd)
@@ -105,7 +115,9 @@ func TestFetchGitHubKeys_ConnError(t *testing.T) {
 	orig := githubKeysURL
 	githubKeysURL = func(user string) string { return "http://127.0.0.1:0/" + user + ".keys" }
 	t.Cleanup(func() { githubKeysURL = orig })
-	assert.Nil(t, fetchGitHubKeys(&Config{}, "x", discardLogger()))
+	keys, err := fetchGitHubKeys(&Config{}, "x", discardLogger())
+	assert.Nil(t, keys)
+	assert.ErrorContains(t, err, `fetching keys for GitHub user "x"`)
 }
 
 func TestFetchGitHubKeys_CacheDisabled(t *testing.T) {
@@ -116,8 +128,8 @@ func TestFetchGitHubKeys_CacheDisabled(t *testing.T) {
 	})
 	dir := t.TempDir()
 	cfg := &Config{CacheDir: dir, CacheTTLMinutes: 0} // TTL 0 disables caching
-	_ = fetchGitHubKeys(cfg, "user", discardLogger())
-	_ = fetchGitHubKeys(cfg, "user", discardLogger())
+	_, _ = fetchGitHubKeys(cfg, "user", discardLogger())
+	_, _ = fetchGitHubKeys(cfg, "user", discardLogger())
 	assert.Equal(t, 2, calls, "both calls should hit the network when caching is disabled")
 	assert.NoFileExists(t, filepath.Join(dir, "user.keys"), "no cache file when TTL is 0")
 }
@@ -134,7 +146,9 @@ func TestFetchGitHubKeys_BodyReadError(t *testing.T) {
 		_ = bufrw.Flush()
 		_ = conn.Close()
 	})
-	assert.Nil(t, fetchGitHubKeys(&Config{}, "user", discardLogger()))
+	keys, err := fetchGitHubKeys(&Config{}, "user", discardLogger())
+	assert.Nil(t, keys)
+	assert.ErrorContains(t, err, `reading keys for GitHub user "user"`)
 }
 
 func TestCollectRecipients(t *testing.T) {
@@ -165,14 +179,23 @@ func TestCollectRecipients(t *testing.T) {
 	assert.Equal(t, "octocat", ghUser3)
 
 	// A valid user whose keys cannot be fetched is also an error: encrypting
-	// without the requested recipient is the failure this guards.
+	// without the requested recipient is the failure this guards. The cause is
+	// in the message, so a nonexistent account does not read as one without keys.
 	withGitHubKeysServer(t, func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	})
 	got4, _, err := collectRecipients(&Config{DefaultRecipients: []string{"mine"}}, nil, "octocat", log)
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "no public keys found")
+	assert.ErrorContains(t, err, "404 Not Found; refusing to encrypt without the requested recipient")
 	assert.Nil(t, got4)
+
+	// An account that exists but has published no keys: still an error, with the
+	// message that says exactly that.
+	withGitHubKeysServer(t, func(http.ResponseWriter, *http.Request) {})
+	got5, _, err := collectRecipients(&Config{DefaultRecipients: []string{"mine"}}, nil, "octocat", log)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, `no public keys found for GitHub user "octocat"`)
+	assert.Nil(t, got5)
 }
 
 // TestEnsureWritableOutput covers the guard that keeps a derived output path from
@@ -240,7 +263,7 @@ func TestEncryptCmd_GitHubUserPositionalWithInputFlag(t *testing.T) {
 	err := c.RunE(c, []string{"octocat"})
 
 	require.Error(t, err, "the positional github-user must not be discarded")
-	assert.ErrorContains(t, err, "no public keys found")
+	assert.ErrorContains(t, err, `GitHub user "octocat"`)
 	assert.NoFileExists(t, in+".age", "no output without the requested recipient")
 }
 

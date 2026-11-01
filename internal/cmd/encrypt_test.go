@@ -62,7 +62,8 @@ func TestFetchGitHubKeys_CacheHit(t *testing.T) {
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "cacheduser.keys"), []byte("ssh-ed25519 CACHED\n"), 0o600))
 
 	cfg := &Config{CacheDir: dir, CacheTTLMinutes: 60}
-	keys := fetchGitHubKeys(cfg, "cacheduser", discardLogger())
+	keys, err := fetchGitHubKeys(cfg, "cacheduser", discardLogger())
+	require.NoError(t, err)
 	assert.Equal(t, []string{"ssh-ed25519 CACHED"}, keys)
 }
 
