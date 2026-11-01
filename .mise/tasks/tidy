@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Tidy go.mod and go.sum"
+set -euo pipefail
+
+go mod tidy

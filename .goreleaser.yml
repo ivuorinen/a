@@ -78,7 +78,7 @@ archives:
       - LICENSE.md
       # Required by the BSD-3/Apache-2.0 dependencies linked into the binary;
       # LICENSE.md is the project's own MIT terms and does not cover them.
-      # Regenerate with `just notices` when the module set changes.
+      # Regenerate with `mise run notices` when the module set changes.
       - THIRD_PARTY_NOTICES.md
       - README.md
 

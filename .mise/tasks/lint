@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Run every hook in .pre-commit-config.yaml on all files; fixers rewrite files"
+# The hooks are the one place each formatter and linter is invoked, so the git
+# hook, this task and CI's Lint job cannot disagree about a file. Like the git
+# hook, prek only sees files git tracks.
+set -euo pipefail
+
+prek run --all-files

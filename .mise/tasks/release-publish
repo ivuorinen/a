@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Publish a release with GoReleaser (needs a tag and GITHUB_TOKEN)"
+# release.yml runs this on a pushed v*.*.* tag.
+set -euo pipefail
+
+goreleaser release --clean

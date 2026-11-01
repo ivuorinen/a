@@ -1,7 +1,10 @@
 ---
+# This file pins no versions. The builtin hooks ship with prek, and every local
+# hook runs a binary pinned in mise.toml, so the git hook, `mise run lint` and
+# CI's Lint job run the same versions. Entries go through `mise exec --` so a
+# commit made from a shell without mise activated still finds the binaries.
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
+  - repo: builtin
     hooks:
       - id: detect-private-key
       - id: trailing-whitespace
@@ -19,66 +22,71 @@ repos:
       - id: mixed-line-ending
         args: [--fix=auto]
 
-  - repo: https://github.com/pre-commit/sync-pre-commit-deps
-    rev: 497f8ebf9d58162bb5898e3973a633d31d511169 # frozen: v0.0.5
+  - repo: local
     hooks:
-      - id: sync-pre-commit-deps
-
-  - repo: https://github.com/tekwizely/pre-commit-golang
-    rev: f298c082154b2cb239fac06a4f452368e66e66dd # frozen: v1.0.0-rc.4
-    hooks:
-      - id: go-build-mod
-        alias: build
+      # golangci-lint also formats: .golangci.yml enables gofmt, goimports and
+      # golines with `fix: true`, so no separate gofmt hook is needed.
+      - id: go-build
+        name: go build
+        entry: mise exec -- go build -o /dev/null ./...
+        language: system
+        files: (\.go$)|(\bgo\.mod$)
+        pass_filenames: false
+        require_serial: true
       - id: go-mod-tidy
-        alias: tidy
-      - id: golangci-lint-mod
-        alias: lint
-      - id: go-fmt
-        alias: fmt
-        args: [-s, -w]
-
-  - repo: https://github.com/google/yamlfmt
-    rev: 21ca5323a9c87ee37a434e0ca908efc0a89daa07 # frozen: v0.21.0
-    hooks:
+        name: go mod tidy
+        entry: mise exec -- go mod tidy
+        language: system
+        files: (\.go$)|(\bgo\.mod$)
+        pass_filenames: false
+        require_serial: true
+      - id: golangci-lint
+        name: golangci-lint
+        entry: mise exec -- golangci-lint run
+        language: system
+        files: (\.go$)|(\bgo\.mod$)
+        pass_filenames: false
+        require_serial: true
       - id: yamlfmt
-
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: cbcdc463be5464e25e3e955a511599a67b9b987f # frozen: v0.50.0
-    hooks:
+        name: yamlfmt
+        entry: mise exec -- yamlfmt
+        language: system
+        types: [yaml]
       - id: markdownlint
-        args: [-c, .markdownlint.json, --fix]
-
-  - repo: https://github.com/adrienverge/yamllint
-    rev: cba56bcde1fdd01c1deb3f945e69764c291a6530 # frozen: v1.38.0
-    hooks:
+        name: markdownlint
+        entry: mise exec -- markdownlint -c .markdownlint.json --fix
+        language: system
+        types: [markdown]
       - id: yamllint
-
-  - repo: https://github.com/scop/pre-commit-shfmt
-    rev: 479be5958357ba5ab65ce47172117348516860e9 # frozen: v3.14.1-1
-    hooks:
+        name: yamllint
+        entry: mise exec -- yamllint
+        language: system
+        types: [file, yaml]
       - id: shfmt
-
-  - repo: https://github.com/koalaman/shellcheck-precommit
-    rev: 99470f5e12208ff0fb17ab81c3c494f7620a1d8d # frozen: v0.11.0
-    hooks:
+        name: shfmt
+        entry: mise exec -- shfmt --write
+        language: system
+        types: [shell]
+        exclude_types: [csh, tcsh]
       - id: shellcheck
-        args: ["--severity=warning"]
-
-  - repo: https://github.com/rhysd/actionlint
-    rev: 914e7df21a07ef503a81201c76d2b11c789d3fca # frozen: v1.7.12
-    hooks:
+        name: shellcheck
+        entry: mise exec -- shellcheck --severity=warning
+        language: system
+        types: [shell]
       - id: actionlint
-        args: ["-shellcheck="]
-
-  - repo: https://github.com/bridgecrewio/checkov.git
-    rev: 9504d068f8411b04a0ad67099d0d302242ba7d43 # frozen: 3.4.0
-    hooks:
+        name: actionlint
+        entry: mise exec -- actionlint -shellcheck=
+        language: system
+        types: [yaml]
+        files: ^\.github/workflows/
       - id: checkov
-        # Upstream gates this hook on `files: \.tf$`; with no Terraform in this
-        # repo that meant it silently never ran -- "Skipped", which reads like
-        # "Passed" in a hook summary. The workflows are the IaC surface here,
-        # so trigger on those. The hook ignores filenames (pass_filenames: false)
-        # and always scans `-d .`.
+        name: checkov
+        # The workflows are the IaC surface here, so trigger on those. Upstream's
+        # hook gated on `files: \.tf$`; with no Terraform in this repo that meant
+        # it silently never ran -- "Skipped", which reads like "Passed" in a hook
+        # summary. checkov ignores filenames and always scans `-d .`.
+        entry: mise exec -- checkov -d . --quiet
+        language: system
         files: ^\.github/workflows/.*\.ya?ml$
-        args:
-          - "--quiet"
+        pass_filenames: false
+        require_serial: true

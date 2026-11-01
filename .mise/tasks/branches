@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Report branch coverage (not gated)"
+# Branches rather than conditions: a coarser view, useful when hunting an
+# unreached arm rather than an unexercised term. Not gated in CI -- the
+# conditions task subsumes it. One package per run: gobco panics when given
+# more than one.
+set -euo pipefail
+
+gobco -branch .
+gobco -branch ./internal/cmd

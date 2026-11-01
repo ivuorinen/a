@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Rehearse a release with GoReleaser (snapshot, nothing published)"
+# No --skip-publish: GoReleaser v2 removed the individual --skip-* flags in
+# favour of --skip=<option>, so the pinned version rejected the whole command
+# with "unknown flag" and this rehearsal never ran. --snapshot already implies
+# --skip=announce,publish,validate, so nothing needs to replace it.
+set -euo pipefail
+
+goreleaser release --clean --snapshot

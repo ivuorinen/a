@@ -3,7 +3,7 @@
 # Schema: https://raw.githubusercontent.com/google/yamlfmt/main/schema.json
 # Top level, not under formatter:. yamlfmt takes path-collection settings here
 # and silently accepts unknown keys inside formatter:, so nested this did
-# nothing and `just format` rewrote gitignored build output under dist/.
+# nothing and a formatting run rewrote gitignored build output under dist/.
 gitignore_excludes: true
 
 formatter:

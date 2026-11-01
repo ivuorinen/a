@@ -488,7 +488,7 @@ func TestLoadConfigWrapperError(t *testing.T) {
 // main() runs in a subprocess, so a plain `go test -coverprofile` cannot see any
 // of it and reports the function at 0% however thoroughly this test exercises
 // it. Setting A_INTEGRATION_GOCOVERDIR builds the binary with `-cover` and
-// points it at that directory, so `just coverage` can merge the subprocess's
+// points it at that directory, so `mise run coverage` can merge the subprocess's
 // counters into the unit-test profile. Unset (the default, and every plain
 // `go test` run), the build is ordinary and nothing here changes.
 func TestCLIIntegration(t *testing.T) {
@@ -500,8 +500,8 @@ func TestCLIIntegration(t *testing.T) {
 	binPath := filepath.Join(t.TempDir(), "a")
 	buildArgs := []string{"build", "-o", binPath, "."}
 	if covDir != "" {
-		// #nosec G703 -- covDir is the coverage directory the Justfile hands this
-		// test, not user input; 0750 so `go tool covdata` can read it back.
+		// #nosec G703 -- covDir is the coverage directory the coverage task hands
+		// this test, not user input; 0750 so `go tool covdata` can read it back.
 		require.NoError(t, os.MkdirAll(covDir, 0o750))
 		buildArgs = []string{"build", "-cover", "-o", binPath, "."}
 	}
