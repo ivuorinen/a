@@ -57,7 +57,7 @@ just = "1.59.0"
 goreleaser = "2.19.0"
 # `just precommit` prefers prek and falls back to pre-commit; pinning prek here
 # means the fallback is never needed.
-prek = "0.5.7"
+prek = "0.5.9"
 # goreleaser shells out to these during `just release` and in release.yml:
 # `signs.cmd: cosign` and the `sboms` block (syft). Without them a local release
 # run skips or fails those stages, so a snapshot build would not exercise what CI
