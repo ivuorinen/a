@@ -315,7 +315,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## go.yaml.in/yaml/v3 v3.0.5 — LICENSE
+## go.yaml.in/yaml/v3 v3.0.6 — LICENSE
 
 ```text
 
@@ -370,7 +370,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## go.yaml.in/yaml/v3 v3.0.5 — NOTICE
+## go.yaml.in/yaml/v3 v3.0.6 — NOTICE
 
 ```text
 Copyright 2011-2016 Canonical Ltd.
