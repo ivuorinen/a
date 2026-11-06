@@ -344,10 +344,6 @@ provenance = "github-attestations"
 version = "3.14.10"
 backend = "core:python"
 
-[tools.python.options]
-precompiled_arch = "x86_64"
-precompiled_os = "unknown-linux-gnu"
-
 [tools.python."platforms.linux-arm64"]
 checksum = "sha256:90f48337bc3dd4ae6eda81e001e4c981236d403b6b5a07778bbdf94ee423dc00"
 url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10+20261026-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz"
