@@ -6,5 +6,12 @@
 # more than one.
 set -euo pipefail
 
+# Same trusted temp directory as the conditions task, for the same reason:
+# gobco copies mise.toml with the module, and a mise shim reached inside that
+# copy otherwise fails mise's trust check. See .mise/tasks/conditions.
+workdir=$(mktemp -d)
+trap 'rm -rf "$workdir"' EXIT
+export TMPDIR="$workdir" MISE_TRUSTED_CONFIG_PATHS="$workdir"
+
 gobco -branch .
 gobco -branch ./internal/cmd
