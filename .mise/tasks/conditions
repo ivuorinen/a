@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#MISE description="Check every condition is evaluated both true and false"
 # Fail when any condition has not been evaluated both true and false.
 #
 # `go test -cover` measures *statements*. A compound condition like `a && b` is
@@ -9,32 +10,26 @@
 # cache into the process's working directory. gobco counts each condition's true
 # and false outcomes separately and is what catches that.
 #
-# This is a script rather than a Justfile line for two reasons, both gobco
-# behaviors that would otherwise produce a check that cannot fail:
+# This is more than a bare `gobco` call because of two gobco behaviors that
+# would otherwise produce a check that cannot fail:
 #
 #   - gobco exits 0 even when it reports uncovered conditions, so the exit status
 #     has to be derived from its summary line.
 #   - gobco panics when given more than one package, so each is run separately.
 #
 # A missing or unparseable summary is treated as failure, not as a pass: silence
-# from a checker is the failure mode this exists to prevent.
+# from a checker is the failure mode this exists to prevent. That includes a
+# missing gobco, which fails the `gobco` call below.
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
-
-# mise.toml pins gobco and CI installs it from there, so the binary is always on
-# PATH where this runs. A missing one is a setup error, not a pass.
-if ! command -v gobco >/dev/null 2>&1; then
-  echo "::error::gobco not on PATH; activate mise after 'mise install', or run 'mise exec -- just conditions'" >&2
-  exit 1
-fi
-
-# gobco copies the module to a temp directory and runs `go test` there, and the
-# copy includes mise.toml. On a machine with mise active that config sits at an
-# untrusted path, so mise refuses to load it and the test run dies before gobco
-# sees any coverage -- reported as "gobco failed to run", which is true but
-# unhelpful. Giving gobco a directory we just created and trusting exactly that
-# one keeps the check working under mise without trusting all of /tmp.
+# gobco copies the whole module, mise.toml included, to a temp directory and
+# runs `go test` there. Any mise shim the tests reach inside that copy -- `git`,
+# for one, when Go stamps VCS info into the binary TestCLIIntegration builds --
+# finds that mise.toml at an untrusted path and exits non-zero, which gobco
+# reports as "failed to run". `mise run` putting the real `go` ahead of the
+# shims does not help with any other tool. Giving gobco a directory created
+# here and trusting exactly that one keeps the check working under mise
+# without trusting all of /tmp.
 workdir=$(mktemp -d)
 trap 'rm -rf "$workdir"' EXIT
 export TMPDIR="$workdir" MISE_TRUSTED_CONFIG_PATHS="$workdir"

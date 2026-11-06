@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Run tests with coverage; writes coverage.out and coverage.html"
+# Two profiles merged, not one: main() only ever runs in the subprocess
+# TestCLIIntegration launches, so `go test -coverprofile` alone reports it at 0%
+# no matter how thoroughly the test drives it. -test.gocoverdir collects the unit
+# runs in the same binary format, A_INTEGRATION_GOCOVERDIR makes the integration
+# test build its binary with -cover, and covdata merges the two.
+set -euo pipefail
+
+rm -rf .coverdata && mkdir -p .coverdata/unit .coverdata/integration .coverdata/merged
+A_INTEGRATION_GOCOVERDIR="$PWD/.coverdata/integration" \
+  go test -cover ./... -args -test.gocoverdir="$PWD/.coverdata/unit"
+go tool covdata merge -i=.coverdata/unit,.coverdata/integration -o=.coverdata/merged
+go tool covdata textfmt -i=.coverdata/merged -o=coverage.out
+go tool cover -func=coverage.out | tail -1
+go tool cover -html=coverage.out -o coverage.html

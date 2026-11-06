@@ -11,6 +11,10 @@
 # ENABLE_LINTERS below is an allow-list -- deleting it does not disable CI
 # linting, it unleashes MegaLinter's full default linter set (GO_GOLANGCI_LINT
 # and GO_REVIVE included) on every PR.
+#
+# yamllint and markdownlint are not on it: test.yml's Lint job runs them through
+# the git hooks, at the versions mise.toml pins. MegaLinter bundles its own
+# versions, so running them here as well meant two versions judging one file.
 APPLY_FIXES: all
 SHOW_ELAPSED_TIME: false # Show elapsed time at the end of MegaLinter run
 PARALLEL: true
@@ -22,11 +26,7 @@ PRINT_ALPACA: false # Print Alpaca logo in console
 SARIF_REPORTER: true # Generate SARIF report
 SHOW_SKIPPED_LINTERS: false # Show skipped linters in MegaLinter log
 ENABLE_LINTERS:
-  - YAML_YAMLLINT
-  - MARKDOWN_MARKDOWNLINT
   - YAML_PRETTIER
   - JSON_PRETTIER
-YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
-MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
 FILTER_REGEX_EXCLUDE: >
   (node_modules|\.automation/test)

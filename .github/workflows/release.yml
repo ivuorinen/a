@@ -20,6 +20,11 @@ jobs:
     permissions:
       contents: write # create the GitHub release and upload artifacts
       id-token: write # OIDC token for keyless cosign/Sigstore signing
+    env:
+      # Go, GoReleaser, and the cosign and syft binaries GoReleaser shells out to
+      # (`signs`, `sboms`). Limits both the install and `mise run`, which would
+      # otherwise install every tool in mise.toml.
+      MISE_ENABLE_TOOLS: go,goreleaser,cosign,syft
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,15 +33,13 @@ jobs:
           persist-credentials: false # GoReleaser authenticates via GITHUB_TOKEN, not the persisted git credential
 
       - name: Install the release toolchain from mise.toml
-        # Go, GoReleaser, and the cosign and syft binaries GoReleaser shells out
-        # to (`signs`, `sboms`), at the versions `just release` uses locally.
+        # The versions `mise run release` uses locally.
         uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           version: 2026.10.22
-          install_args: go goreleaser cosign syft
           cache: false # release builds must not trust a cache poisonable from lower-privilege runs
 
       - name: Run GoReleaser
-        run: goreleaser release --clean
+        run: mise run release-publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Remove build, release and coverage artifacts"
+set -euo pipefail
+
+rm -rf a dist/ coverage* .coverdata *.log

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Check the dependency graph for known vulnerabilities"
+# golangci-lint's gosec audits this repo's source; nothing else audits the
+# modules it links. Same command test.yml runs.
+set -euo pipefail
+
+govulncheck ./...

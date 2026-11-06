@@ -10,7 +10,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-permissions: {} # least privilege by default; the job grants only what it needs
+permissions: {} # least privilege by default; each job grants only what it needs
 jobs:
   test:
     name: Test
@@ -18,6 +18,10 @@ jobs:
     timeout-minutes: 15 # a cold mise cache builds govulncheck and gobco from source
     permissions:
       contents: read # check out the repository
+    env:
+      # Only the tools this job calls. Without the list, the action installs every
+      # tool in mise.toml, and `mise run` would install any it skipped.
+      MISE_ENABLE_TOOLS: go,goreleaser,go:golang.org/x/vuln/cmd/govulncheck,go:github.com/rillig/gobco
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,39 +29,27 @@ jobs:
           persist-credentials: false
 
       - name: Install the toolchain from mise.toml
-        # mise.toml is the only place these versions live; CI used to re-pin
-        # golangci-lint, govulncheck and gobco by hand, and the copies drifted.
-        # Only the tools this job calls are installed.
+        # mise.toml (and go.mod, for Go) is the only place these versions live;
+        # CI used to re-pin golangci-lint, govulncheck and gobco by hand, and the
+        # copies drifted. Each step below runs the same task a local run does.
         uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
           version: 2026.10.22
-          install_args: go golangci-lint goreleaser go:golang.org/x/vuln/cmd/govulncheck go:github.com/rillig/gobco
-
-      - name: Lint
-        # .golangci.yml enables 27 linters that nothing ran: golangci-lint is in no
-        # workflow, and pr-lint.yml's MegaLinter allow-list contains no Go linter.
-        # --fix=false overrides `issues.fix: true` in .golangci.yml so CI reports
-        # instead of rewriting the source it is meant to be checking.
-        # install-mode none runs the mise-installed binary; the action stays for
-        # its problem matchers, which annotate findings on the PR diff.
-        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
-        with:
-          install-mode: none
-          args: --fix=false
+          cache_key_prefix: mise-test # the Lint job caches a different tool set
 
       - name: Check third-party notices are current
         # The notices file is generated from the module set and ships in every
-        # release artifact, so a dependency bump that forgets `just notices`
+        # release artifact, so a dependency bump that forgets `mise run notices`
         # publishes attribution for the wrong versions -- or omits a new
         # dependency's license entirely. Regenerate and diff.
         # git status --porcelain, not git diff --exit-code: diff only compares
         # tracked files, so it silently passes if the file is untracked or was
         # removed from git -- which is the same compliance gap as a stale one.
         run: |
-          ./scripts/gen-notices.sh
+          mise run notices
           if [ -n "$(git status --porcelain -- THIRD_PARTY_NOTICES.md)" ]; then
             git --no-pager diff -- THIRD_PARTY_NOTICES.md
-            echo "::error::THIRD_PARTY_NOTICES.md is stale or untracked - run 'just notices' and commit"
+            echo "::error::THIRD_PARTY_NOTICES.md is stale or untracked - run 'mise run notices' and commit"
             exit 1
           fi
 
@@ -69,21 +61,21 @@ jobs:
         run: command -v ssh-keygen
 
       - name: Run tests
-        run: go test -race -coverprofile=coverage.out ./...
+        run: mise run test
 
       - name: Check dependencies for known vulnerabilities
         # golangci-lint's gosec audits this repo's source; nothing audited the
         # modules it links, so x/crypto sat two minors behind two fixed ssh
-        # advisories unnoticed. Same binary and command as `just vuln`.
-        run: govulncheck ./...
+        # advisories unnoticed.
+        run: mise run vuln
 
       - name: Check every condition is evaluated both ways
         # `go test -cover` counts statements, so a compound condition is marked
         # covered by a single evaluation and an `if` with no `else` has no block
         # for its false path. The suite hit 100% statement coverage with two
-        # conditions still never observed both ways. The script wraps gobco
+        # conditions still never observed both ways. The task wraps gobco
         # because gobco exits 0 even when it reports gaps.
-        run: ./scripts/check-conditions.sh
+        run: mise run conditions
 
       - name: Cross-compile every released target
         # The jobs above only ever compile linux/amd64. Without this, a pushed
@@ -92,4 +84,44 @@ jobs:
         # builds its own `builds:` matrix, so the target list lives only in
         # .goreleaser.yml; a hand-copied list here had already dropped six of the
         # fifteen targets. Build only; the tests stay on linux.
-        run: goreleaser build --snapshot --clean
+        run: mise run cross-compile
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # a cold mise cache installs node, python and the linters
+    permissions:
+      contents: read # check out the repository
+    env:
+      # The tools the hooks in .pre-commit-config.yaml call, plus the runtimes
+      # markdownlint-cli (node) and yamllint (python, uv) run on.
+      MISE_ENABLE_TOOLS: go,node,python,uv,golangci-lint,prek,yamlfmt,npm:markdownlint-cli,yamllint,shfmt,shellcheck,actionlint,checkov
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the linters from mise.toml
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+        with:
+          version: 2026.10.22
+          cache_key_prefix: mise-lint # the Test job caches a different tool set
+
+      - name: golangci-lint
+        # --fix=false overrides `issues.fix: true` in .golangci.yml so CI reports
+        # instead of rewriting the source it is meant to be checking.
+        # install-mode none runs the mise-installed binary; the action stays for
+        # its problem matchers, which annotate findings on the PR diff.
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          install-mode: none
+          args: --fix=false
+
+      - name: Run the git hooks on every file
+        # The hooks a commit runs, at the mise.toml versions. A hook that rewrites
+        # a file fails the step, so unformatted code fails here as it would
+        # locally. golangci-lint is skipped because the step above already ran it.
+        run: mise run lint
+        env:
+          SKIP: golangci-lint

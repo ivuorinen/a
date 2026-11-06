@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Build every released target with GoReleaser, without publishing"
+# The tests only ever compile linux/amd64. Without this, a pushed v*.*.* tag is
+# the first build of any other target. GoReleaser builds its own `builds:`
+# matrix, so the target list lives only in .goreleaser.yml.
+set -euo pipefail
+
+goreleaser build --snapshot --clean

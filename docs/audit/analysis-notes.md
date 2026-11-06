@@ -4,9 +4,9 @@
 
 | Metric | internal/cmd | main | Command | Gated in CI |
 | --- | --- | --- | --- | --- |
-| Statement | 100% | 100% | `just coverage` | no |
-| Branch | 220/220 | 22/22 | `just branches` | no |
-| Condition | 242/242 | 28/28 | `just conditions` | **yes** |
+| Statement | 100% | 100% | `mise run coverage` | no |
+| Branch | 220/220 | 22/22 | `mise run branches` | no |
+| Condition | 242/242 | 28/28 | `mise run conditions` | **yes** |
 
 146 tests and subtests (`=== RUN` lines of `go test -v ./...`), no skips.
 
@@ -17,17 +17,17 @@ representing its false path. This repo hit 100% statement coverage while two
 conditions had still never been observed both ways, one of them a guard whose
 removal writes the GitHub key cache into the process's working directory.
 
-Condition coverage is therefore the gated one, via
-`scripts/check-conditions.sh`, which `just conditions` and the CI job both run.
-The script exists rather than a bare `gobco` call because gobco exits 0 even
-when it reports gaps — a check that cannot fail — and because it panics when
-handed more than one package. gobco is pinned in mise.toml and needs no entry in
-go.mod; CI installs it from there through jdx/mise-action, and the script fails
-when the binary is not on PATH.
+Condition coverage is therefore the gated one, via the `.mise/tasks/conditions`
+task, which a local `mise run conditions` and the CI job both run. The task
+exists rather than a bare `gobco` call because gobco exits 0 even when it
+reports gaps — a check that cannot fail — and because it panics when handed
+more than one package. gobco is pinned in mise.toml and needs no entry in
+go.mod; CI installs it from there through jdx/mise-action, and the task fails
+when the binary is missing, because the `gobco` call itself fails.
 
-Branch coverage is not gated: condition coverage subsumes it, and `just
-branches` is there for the coarser view when hunting an unreached arm rather
-than an unexercised term.
+Branch coverage is not gated: condition coverage subsumes it, and
+`mise run branches` is there for the coarser view when hunting an unreached arm
+rather than an unexercised term.
 
 ### Known equivalent mutants
 
@@ -50,9 +50,9 @@ A fourth survivor was **not** equivalent and is now covered: dropping
 resolve to a bare relative path, writing the key cache into the process's
 working directory. `TestFetchGitHubKeys_NoCacheDirDoesNotWriteToCwd` pins it.
 
-`just coverage`, not `go test -coverprofile`: `main()` runs in the subprocess
+`mise run coverage`, not `go test -coverprofile`: `main()` runs in the subprocess
 `TestCLIIntegration` launches, so a plain profile reports it at 0% however
-thoroughly the test drives it. The recipe collects the unit runs via
+thoroughly the test drives it. The task collects the unit runs via
 `-test.gocoverdir`, has the integration test build its binary with `-cover` via
 `A_INTEGRATION_GOCOVERDIR`, and merges the two with `go tool covdata`. A plain
 `go test` run is unaffected and still builds the binary the ordinary way.

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Build the a binary into ./a"
+set -euo pipefail
+
+go build -o a .

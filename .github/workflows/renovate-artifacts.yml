@@ -1,10 +1,16 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Renovate notices
-# A Renovate PR that moves the module set leaves THIRD_PARTY_NOTICES.md stale, so
-# test.yml's notices check fails it. Renovate's own mechanism for this,
-# postUpgradeTasks, does not run here: the Mend-hosted app only executes commands
-# Mend has allowlisted. This regenerates the file on Renovate's branches instead.
+name: Renovate artifacts
+# Two generated files go stale on Renovate's branches:
+#   - THIRD_PARTY_NOTICES.md, when a PR moves the module set; test.yml's notices
+#     check then fails it.
+#   - mise.lock, when a PR bumps go.mod's `toolchain` line, which is where mise
+#     reads the Go version. Renovate's gomod manager does not touch mise.lock,
+#     and CI installs with `--locked`, so every job would fail on a Go version
+#     the lockfile does not list.
+# Renovate's own mechanism for this, postUpgradeTasks, does not run here: the
+# Mend-hosted app only executes commands Mend has allowlisted. This regenerates
+# both files on Renovate's branches instead.
 on:
   push:
     branches: ["renovate/**"]
@@ -13,31 +19,45 @@ concurrency:
   cancel-in-progress: true
 permissions: {} # GITHUB_TOKEN gets nothing; checkout and push use FIXIMUS_TOKEN
 jobs:
-  notices:
-    name: Regenerate third-party notices
+  artifacts:
+    name: Regenerate mise.lock and third-party notices
     # No `github.actor == 'renovate[bot]'` gate: the actor is spoofable (zizmor
     # bot-conditions), and it never guarded FIXIMUS_TOKEN -- anyone who can push
     # to renovate/** can read that secret from a workflow of their own. This
-    # job's own push starts one more run, which finds the file current and exits.
+    # job's own push starts one more run, which finds both files current and exits.
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # `mise run notices` needs only Go. `mise lock` still locks every tool in
+      # mise.toml; this list limits what is installed, not what is locked.
+      MISE_ENABLE_TOOLS: go
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Not persisted: setup-go and this branch's own gen-notices.sh run next,
-          # and neither needs the token. Only the push step receives it.
+          # Not persisted: mise and this branch's own notices task run next, and
+          # neither needs the token. Only the push step receives it.
           token: ${{ secrets.FIXIMUS_TOKEN }}
           persist-credentials: false
 
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - name: Set up mise
+        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
         with:
-          go-version-file: "go.mod"
+          version: 2026.10.22
+          # No install here: with a bumped toolchain, `mise install --locked`
+          # fails on exactly the stale lock this job exists to regenerate.
+          install: false
           cache: false # this job holds a write token; same reasoning as release.yml
 
+      - name: Regenerate mise.lock
+        # The job's token carries no permissions; it only lifts the anonymous
+        # GitHub API rate limit for the release lookups `mise lock` makes.
+        env:
+          MISE_GITHUB_TOKEN: ${{ github.token }}
+        run: mise lock
+
       - name: Regenerate THIRD_PARTY_NOTICES.md
-        run: ./scripts/gen-notices.sh
+        run: mise run notices
 
       - name: Commit and push if changed
         # Not GITHUB_TOKEN: a push made with it starts no workflows, so the
@@ -48,14 +68,14 @@ jobs:
         env:
           FIXIMUS_TOKEN: ${{ secrets.FIXIMUS_TOKEN }}
         run: |
-          if [ -z "$(git status --porcelain -- THIRD_PARTY_NOTICES.md)" ]; then
-            echo "THIRD_PARTY_NOTICES.md is current"
+          if [ -z "$(git status --porcelain -- mise.lock THIRD_PARTY_NOTICES.md)" ]; then
+            echo "mise.lock and THIRD_PARTY_NOTICES.md are current"
             exit 0
           fi
           git config user.name "fiximus"
           git config user.email "189535814+fiximus@users.noreply.github.com"
-          git add THIRD_PARTY_NOTICES.md
-          git commit -m "chore(deps): regenerate THIRD_PARTY_NOTICES.md"
+          git add mise.lock THIRD_PARTY_NOTICES.md
+          git commit -m "chore(deps): regenerate mise.lock and THIRD_PARTY_NOTICES.md"
           # The header actions/checkout would have persisted, for this push only.
           # Masked because Actions masks the raw secret, not its base64 form, and
           # passed through git's environment config rather than `git -c`, so it
