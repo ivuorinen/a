@@ -36,7 +36,7 @@ jobs:
         # The versions `mise run release` uses locally.
         uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          version: 2026.10.22
+          version: 2026.11.5
           cache: false # release builds must not trust a cache poisonable from lower-privilege runs
 
       - name: Run GoReleaser
