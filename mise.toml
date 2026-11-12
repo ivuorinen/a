@@ -50,7 +50,7 @@ uv = "0.13.7"
 # --- build and release ---------------------------------------------------------
 goreleaser = "2.19.0"
 # Runs .pre-commit-config.yaml, both as the git hook and as `mise run lint`.
-prek = "0.5.9"
+prek = "0.5.10"
 # goreleaser shells out to these during `mise run release` and in release.yml:
 # `signs.cmd: cosign` and the `sboms` block (syft). Without them a local release
 # run skips or fails those stages, so a snapshot build would not exercise what CI
