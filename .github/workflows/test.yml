@@ -32,7 +32,7 @@ jobs:
         # mise.toml (and go.mod, for Go) is the only place these versions live;
         # CI used to re-pin golangci-lint, govulncheck and gobco by hand, and the
         # copies drifted. Each step below runs the same task a local run does.
-        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: 2026.10.22
           cache_key_prefix: mise-test # the Lint job caches a different tool set
@@ -103,7 +103,7 @@ jobs:
           persist-credentials: false
 
       - name: Install the linters from mise.toml
-        uses: jdx/mise-action@6be3c7ed4c21d4f76b208d351d95aac273ebb76d # v5.2.4
+        uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
           version: 2026.10.22
           cache_key_prefix: mise-lint # the Test job caches a different tool set
