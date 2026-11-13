@@ -388,7 +388,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## golang.org/x/crypto v0.58.0 — LICENSE
+## golang.org/x/crypto v0.59.0 — LICENSE
 
 ```text
 Copyright 2009 The Go Authors.
@@ -420,7 +420,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/sys v0.49.0 — LICENSE
+## golang.org/x/sys v0.50.0 — LICENSE
 
 ```text
 Copyright 2009 The Go Authors.
@@ -452,7 +452,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
-## golang.org/x/term v0.47.0 — LICENSE
+## golang.org/x/term v0.48.0 — LICENSE
 
 ```text
 Copyright 2009 The Go Authors.
