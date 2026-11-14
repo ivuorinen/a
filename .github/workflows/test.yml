@@ -34,7 +34,7 @@ jobs:
         # copies drifted. Each step below runs the same task a local run does.
         uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          version: 2026.11.5
+          version: 2026.11.6
           cache_key_prefix: mise-test # the Lint job caches a different tool set
 
       - name: Check third-party notices are current
@@ -105,7 +105,7 @@ jobs:
       - name: Install the linters from mise.toml
         uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          version: 2026.11.5
+          version: 2026.11.6
           cache_key_prefix: mise-lint # the Test job caches a different tool set
 
       - name: golangci-lint
