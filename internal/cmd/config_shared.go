@@ -13,7 +13,7 @@ import (
 
 	// The YAML organization's maintained fork of gopkg.in/yaml.v3, which is
 	// archived; same API, and already in the module graph via cobra and testify.
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // defaultCacheTTLMinutes is the GitHub-key cache lifetime written to a freshly
