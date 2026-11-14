@@ -43,7 +43,7 @@ checkov = "3.4.3"
 # `uv tool install` and passes it this python, so neither depends on what the
 # machine has installed. Python stays on 3.14 until PyYAML, yamllint's parser,
 # publishes 3.15 wheels; on 3.15 uv would build it from source.
-node = "26.13.0"
+node = "26.13.1"
 python = "3.14.10"
 uv = "0.13.7"
 
