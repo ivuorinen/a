@@ -18,4 +18,4 @@ jobs:
       issues: write # comment on and close stale issues
       pull-requests: write # comment on and close stale PRs
     steps:
-      - uses: ivuorinen/actions/stale@a1b5eba984db86496ecd9568a81f8b446f0b077a # v2026.11.11
+      - uses: ivuorinen/actions/stale@cd8e7a3bc4a77108893a19ec6aaf154d06b93d42 # v2026.11.13
