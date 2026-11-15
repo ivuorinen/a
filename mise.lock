@@ -47,38 +47,38 @@ url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/3849249
 provenance = "github-attestations"
 
 [[tools.checkov]]
-version = "3.4.3"
+version = "3.4.4"
 backend = "aqua:bridgecrewio/checkov"
 
 [tools.checkov."platforms.linux-x64"]
-checksum = "sha256:f4f183b7fa57351f62400321f72bf6e24958670909d389f0f1973faa784a0135"
+checksum = "sha256:aa8265be25a58bb8607daaa631e19f0f23f3b1675583784951f86a089e321ad8"
 checksum_source = "mise-versions"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.3/checkov_linux_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/703482746"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.4/checkov_linux_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/737216941"
 
 [tools.checkov."platforms.linux-x64-musl"]
-checksum = "sha256:f4f183b7fa57351f62400321f72bf6e24958670909d389f0f1973faa784a0135"
+checksum = "sha256:aa8265be25a58bb8607daaa631e19f0f23f3b1675583784951f86a089e321ad8"
 checksum_source = "mise-versions"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.3/checkov_linux_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/703482746"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.4/checkov_linux_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/737216941"
 
 [tools.checkov."platforms.macos-arm64"]
-checksum = "sha256:2a048a05a93abdafb94011eeb1bd3cc21fdec16cc3d6978340a724f88e38d2b2"
+checksum = "sha256:2d1cea29d980af2709c193ad76aa958ffcfd95dcd3e19563d945eb3d813c8b5b"
 checksum_source = "mise-versions"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.3/checkov_darwin_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/703484221"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.4/checkov_darwin_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/737218856"
 
 [tools.checkov."platforms.macos-x64"]
-checksum = "sha256:2a048a05a93abdafb94011eeb1bd3cc21fdec16cc3d6978340a724f88e38d2b2"
+checksum = "sha256:2d1cea29d980af2709c193ad76aa958ffcfd95dcd3e19563d945eb3d813c8b5b"
 checksum_source = "mise-versions"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.3/checkov_darwin_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/703484221"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.4/checkov_darwin_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/737218856"
 
 [tools.checkov."platforms.windows-x64"]
-checksum = "sha256:f9a6ec2a4f2c6ca3e24248d6244fc967f734dbd9f10c40755d7d5c9db960246b"
+checksum = "sha256:929547e4ccdfa67f3260362a976fe89e5c9de5724af1a7316077a4d544f29418"
 checksum_source = "mise-versions"
-url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.3/checkov_windows_X86_64.zip"
-url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/703486981"
+url = "https://github.com/bridgecrewio/checkov/releases/download/3.4.4/checkov_windows_X86_64.zip"
+url_api = "https://api.github.com/repos/bridgecrewio/checkov/releases/assets/737220548"
 
 [[tools.cosign]]
 version = "3.1.4"
