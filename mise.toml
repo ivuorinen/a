@@ -45,7 +45,7 @@ checkov = "3.4.5"
 # publishes 3.15 wheels; on 3.15 uv would build it from source.
 node = "26.13.1"
 python = "3.15.2"
-uv = "0.13.7"
+uv = "0.13.8"
 
 # --- build and release ---------------------------------------------------------
 goreleaser = "2.20.2"
