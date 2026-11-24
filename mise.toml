@@ -48,7 +48,7 @@ python = "3.15.2"
 uv = "0.13.9"
 
 # --- build and release ---------------------------------------------------------
-goreleaser = "2.20.2"
+goreleaser = "2.20.3"
 # Runs .pre-commit-config.yaml, both as the git hook and as `mise run lint`.
 prek = "0.5.11"
 # goreleaser shells out to these during `mise run release` and in release.yml:
