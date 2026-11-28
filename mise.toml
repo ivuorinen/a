@@ -55,7 +55,7 @@ prek = "0.5.11"
 # `signs.cmd: cosign` and the `sboms` block (syft). Without them a local release
 # run skips or fails those stages, so a snapshot build would not exercise what CI
 # does.
-cosign = "3.1.4"
+cosign = "3.1.5"
 syft = "1.57.2"
 
 [settings]
